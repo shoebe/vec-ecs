@@ -26,10 +26,10 @@ macro_rules! iter_comps {
         $e
     };
     (@getfirstcomp $comp_ind:expr, &mut $e:expr, $($tail:tt)*) => {
-        $e.get_mut_comp_ind($comp_ind)
+        (&mut $e).get_mut_comp_ind($comp_ind)
     };
     (@getfirstcomp $comp_ind:expr, &$e:expr, $($tail:tt)*) => {
-        $e.get_comp_ind($comp_ind)
+        (& $e).get_comp_ind($comp_ind)
     };
     (@intersections $var:expr, $comp1_skip:expr, $($comps:expr)*; $func:expr) => {
         $(
@@ -44,14 +44,14 @@ macro_rules! iter_comps {
     };
     (@tailcomp $comp_ind:expr, $id1:expr, & $comp:expr; $func:expr) => {
         {
-            let (id, comp) = $comp.get_comp_ind($comp_ind);
+            let (id, comp) = (& $comp).get_comp_ind($comp_ind);
             assert_eq!($id1, id);
             comp
         }
     };
     (@tailcomp $comp_ind:expr, $id1:expr, &mut $comp:expr; $func:expr) => {
         {
-            let (id, comp) = $comp.get_mut_comp_ind($comp_ind);
+            let (id, comp) = (&mut $comp).get_mut_comp_ind($comp_ind);
             assert_eq!($id1, id);
             comp
         }
@@ -59,7 +59,7 @@ macro_rules! iter_comps {
     (@tailcomp $comp_ind:expr, $id1:expr, & $comp:expr, $($tail:tt)*) => {
         (
             {
-                let (id, comp) = $comp.get_comp_ind($comp_ind);
+                let (id, comp) = (& $comp).get_comp_ind($comp_ind);
                 assert_eq!($id1, id);
                 comp
             }, iter_comps!(@tailcomp $comp_ind, $id1, $($tail)*)
@@ -68,7 +68,7 @@ macro_rules! iter_comps {
     (@tailcomp $comp_ind:expr, $id1:expr, &mut $comp:expr, $($tail:tt)*) => {
         (
             {
-                let (id, comp) = $comp.get_mut_comp_ind($comp_ind);
+                let (id, comp) = (&mut $comp).get_mut_comp_ind($comp_ind);
                 assert_eq!($id1, id);
                 comp
             }, iter_comps!(@tailcomp $comp_ind, $id1, $($tail)*)
@@ -108,7 +108,7 @@ pub fn test(world: &mut World) {
             inter.intersect_with(&c);
         }
 
-        inter.into_ones().for_each(move |comp_ind| {
+        inter.into_ones().for_each(|comp_ind| {
             let (id1, comp1) = world.pos.get_mut_comp_ind(comp_ind);
             let (id2, comp2) = world.vel.get_comp_ind(comp_ind);
             let (id3, comp3) = world.yomama.get_mut_comp_ind(comp_ind);
