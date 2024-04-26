@@ -12,3 +12,5 @@ edition = "2021"
 fixedbitset = "0.5.7"
 vec-ecs-macro = { path = "crates/vec-ecs-macro" }
 proc-macro2 = "1"
+
+[lib]

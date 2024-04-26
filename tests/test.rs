@@ -1,9 +1,4 @@
-pub mod comp_iter;
-pub mod comp_vec;
-pub mod entity_handle;
-
-use comp_vec::*;
-use entity_handle::*;
+use vec_ecs::{CompVec, EntityHandle, EntityHandleCounter};
 
 #[derive(Debug)]
 pub struct Position(f32, f32);
@@ -36,31 +31,6 @@ impl World {
     }
 }
 
-/*
-Goal:
-
-pub struct World {
-    position: Collec<Position>,
-    veclocity: Collec<Velocity>,
-}
-
-world.insert(
-    Entity {
-        position: Position(1.0, 1.0),
-        velocity: Veclotiy(1.0, 1.0),
-    }.bundles()
-);
-
-let entity = world.get::<Entity::Borrow>(); -> does this take &mut world??
-
-let vec: &[Position] = world.get_column::<Position>();
-
-*/
-
-fn main() {
-    println!("Hello, world!");
-}
-
 #[test]
 fn test() {
     use vec_ecs_macro::comp_iter;
@@ -85,8 +55,7 @@ fn test() {
         world.vel.insert(e, Velocity(10.0, 0.0));
         world.yomama.insert(e, ());
     }
-
-    /* comp_iter!(&mut world.pos, &mut world.vel, &world.yomama; |id, pos, vel, yomama| {
+    for (id, pos, vel, yomama) in comp_iter!(&mut world.pos, &mut world.vel, &world.yomama) {
         dbg!((id, pos, vel, yomama));
-    }); */
+    }
 }

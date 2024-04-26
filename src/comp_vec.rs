@@ -91,10 +91,10 @@ impl<T> CompVec<T> {
         &self.owners
     }
 
-    /* pub fn iter_helper(&self) -> CompIterHelper<&Self> {
-        CompIterHelper::new(self)
+    pub fn iter_helper(&self) -> CompIterHelper<&[(EntityHandle, T)]> {
+        CompIterHelper::new(&self.comps, &self.owners)
     }
-    pub fn iter_helper_mut(&mut self) -> CompIterHelper<&mut Self> {
-        CompIterHelper::new_mut(self)
-    } */
+    pub fn iter_helper_mut(&mut self) -> CompIterHelper<&mut [(EntityHandle, T)]> {
+        CompIterHelper::new_mut(&mut self.comps, &self.owners)
+    }
 }
