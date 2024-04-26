@@ -17,9 +17,14 @@ impl<'a, T> CompIterHelper<'a, &'a [(EntityHandle, T)]> {
     pub fn comp_at(&mut self, ind: usize) -> (EntityHandle, &'a T) {
         let comp_ind = self.owners.count_ones(self.last..ind);
         self.vec = &self.vec[comp_ind..];
-        let (id, out) = &self.vec[comp_ind];
-        self.last = ind;
-        (*id, out)
+        match self.vec {
+            [] => panic!(),
+            [(id, out), rest @ ..] => {
+                self.vec = rest;
+                self.last = ind + 1;
+                (*id, out)
+            }
+        }
     }
 }
 
@@ -38,10 +43,14 @@ impl<'a, T> CompIterHelper<'a, &'a mut [(EntityHandle, T)]> {
         // not entirely sure why this works but I'll take it
         let slice = std::mem::take(&mut self.vec);
         let (prev, slice) = slice.split_at_mut(comp_ind);
-        self.vec = slice;
-        let (id, out) = prev.last_mut().unwrap();
-        self.last = ind;
-        (*id, out)
+        match slice {
+            [] => panic!(),
+            [(id, out), rest @ ..] => {
+                self.vec = rest;
+                self.last = ind + 1;
+                (*id, out)
+            }
+        }
     }
 }
 
