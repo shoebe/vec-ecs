@@ -81,12 +81,12 @@ fn test() {
 
     {
         let e = world.new_entity();
-        world.pos.insert(e, Position(2.0, 0.0));
+        world.pos.insert(e, Position(3.0, 0.0));
         world.vel.insert(e, Velocity(10.0, 0.0));
         world.yomama.insert(e, ());
     }
 
-    comp_iter!(&mut world.pos, &mut world.vel, &world.yomama; |id, pos, vel, yomama| {
+    /* comp_iter!(&mut world.pos, &mut world.vel, &world.yomama; |id, pos, vel, yomama| {
         dbg!((id, pos, vel, yomama));
-    });
+    }); */
 }
