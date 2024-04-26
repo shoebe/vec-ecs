@@ -91,3 +91,29 @@ impl<T> CompVec<T> {
         &self.owners
     }
 }
+
+pub struct CompIter<T> {
+    last: usize,
+    last_comp_ind: usize,
+    vec: T,
+}
+
+impl<T> CompIter<&CompVec<T>> {
+    pub fn comp_at(&mut self, ind: usize) -> (EntityHandle, &T) {
+        let comp_ind = self.last_comp_ind + self.vec.owners().count_ones(self.last..ind);
+        let out = self.vec.get_comp_ind(comp_ind);
+        self.last_comp_ind = comp_ind;
+        self.last = ind;
+        out
+    }
+}
+
+impl<T> CompIter<&mut CompVec<T>> {
+    pub fn comp_at(&mut self, ind: usize) -> (EntityHandle, &mut T) {
+        let comp_ind = self.last_comp_ind + self.vec.owners().count_ones(self.last..ind);
+        let out = self.vec.get_mut_comp_ind(comp_ind);
+        self.last_comp_ind = comp_ind;
+        self.last = ind;
+        out
+    }
+}

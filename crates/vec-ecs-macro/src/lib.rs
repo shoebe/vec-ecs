@@ -57,15 +57,15 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
             inter.intersect_with((#owners_field_iter).owners());
         )*
 
-        inter.into_ones().for_each(|comp_ind| {
-            let (id1, comp1) = (#comps_first_field). #comps_first_func (comp_ind);
+        inter.into_ones().for_each(|entity_ind| {
+            let (id1, comp1) = (#comps_first_field). #comps_first_func (entity_ind);
 
             (#func)(
                 id1,
                 comp1,
                 #(
                     {
-                        let (id, comp) = (#comps_field_iter). #comps_func_iter (comp_ind);
+                        let (id, comp) = (#comps_field_iter). #comps_func_iter (entity_ind);
                         assert_eq!(id1, id);
                         comp
                     },
