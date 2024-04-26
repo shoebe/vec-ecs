@@ -1,67 +1,79 @@
     Checking vec-ecs v0.1.0 (/home/potato/projects/vec-ecs)
 error[E0658]: use of unstable library feature 'trace_macros': `trace_macros` is not stable enough for use and is subject to change
-   --> src/comp_iter.rs:115:5
+   --> src/comp_iter.rs:123:5
     |
-115 |     trace_macros!(true);
+123 |     trace_macros!(true);
     |     ^^^^^^^^^^^^
     |
     = note: see issue #29598 <https://github.com/rust-lang/rust/issues/29598> for more information
 
-error: macro expansion ignores token `,` and any following
-  --> src/comp_iter.rs:68:10
-   |
-68 |         }, iter_comps!(@tailcomp comp_ind, $id1, $($tail)*);
-   |          ^
+error: expected expression, found `,`
+   --> src/comp_iter.rs:74:14
+    |
+74  |               }, iter_comps!(@tailcomp $comp_ind, $id1, $($tail)*)
+    |                ^ expected expression
 ...
-82 |                 iter_comps!(@tailcomp comp_ind, id1, $($tts)*),
-   |                 ---------------------------------------------- caused by the macro expansion here
-   |
-   = note: the usage of `iter_comps!` is likely invalid in expression context
-help: you might be missing a semicolon here
-   |
-82 |                 iter_comps!(@tailcomp comp_ind, id1, $($tts)*);,
-   |                                                               +
+124 | /     iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel, yomama| {
+125 | |
+126 | |     });
+    | |______- in this macro invocation
+    |
+    = note: this error originates in the macro `iter_comps` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 note: trace_macro
-   --> src/comp_iter.rs:116:5
+   --> src/comp_iter.rs:124:5
     |
-116 | /     iter_comps!(&mut world.pos, &mut world.vel; |id, pos, vel| {
-117 | |
-118 | |     });
+124 | /     iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel, yomama| {
+125 | |
+126 | |     });
     | |______^
     |
-    = note: expanding `iter_comps! { &mut world.pos, &mut world.vel; |id, pos, vel| {} }`
+    = note: expanding `iter_comps! { &mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel, yomama| {} }`
     = note: to `{
                 let mut __intersection = iter_comps!
-                (@ first_expr &mut world.pos, &mut world.vel; |id, pos, vel|
-                {}).owners().to_owned(); iter_comps!
-                (@ intersections __intersection, &mut world.pos, &mut world.vel; |id, pos,
-                vel| {});
+                (@ first_expr &mut world.pos, &mut world.vel, &mut world.yomama; |id, pos,
+                vel, yomama| {}).owners().to_owned(); iter_comps!
+                (@ intersections __intersection, &mut world.pos, &mut world.vel, &mut
+                world.yomama; |id, pos, vel, yomama| {});
                 __intersection.into_ones().for_each(| comp_ind |
                 {
                     let (id1, comp1) = iter_comps!
-                    (@ getfirstcomp comp_ind, &mut world.pos, &mut world.vel; |id, pos,
-                    vel| {}); let func = iter_comps!
-                    (@ func &mut world.pos, &mut world.vel; |id, pos, vel| {});
-                    func(comp1, iter_comps!
-                    (@ tailcomp comp_ind, id1, &mut world.pos, &mut world.vel; |id, pos,
-                    vel| {}),);
+                    (@ getfirstcomp comp_ind, &mut world.pos, &mut world.vel, &mut
+                    world.yomama; |id, pos, vel, yomama| {}); let func = iter_comps!
+                    (@ func &mut world.pos, &mut world.vel, &mut world.yomama; |id, pos,
+                    vel, yomama| {});
+                    func(id1, comp1, iter_comps!
+                    (@ tailcomp_skip_first comp_ind, id1, &mut world.pos, &mut world.vel,
+                    &mut world.yomama; |id, pos, vel, yomama| {}),);
                 })
             }`
-    = note: expanding `iter_comps! { @ first_expr &mut world.pos, &mut world.vel; |id, pos, vel| {} }`
+    = note: expanding `iter_comps! { @ first_expr &mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel,
+            yomama| {} }`
     = note: to `&mut world.pos`
-    = note: expanding `iter_comps! { @ intersections __intersection, &mut world.pos, &mut world.vel; |id, pos, vel|
-            {} }`
-    = note: to `__intersection.intersect_with((&mut world.vel).owners());`
-    = note: expanding `iter_comps! { @ getfirstcomp comp_ind, &mut world.pos, &mut world.vel; |id, pos, vel| {} }`
+    = note: expanding `iter_comps! { @ intersections __intersection, &mut world.pos, &mut world.vel, &mut
+            world.yomama; |id, pos, vel, yomama| {} }`
+    = note: to `__intersection.intersect_with((&mut world.vel).owners());
+            __intersection.intersect_with((&mut world.yomama).owners());`
+    = note: expanding `iter_comps! { @ getfirstcomp comp_ind, &mut world.pos, &mut world.vel, &mut world.yomama;
+            |id, pos, vel, yomama| {} }`
     = note: to `(& mut world.pos).get_mut_comp_ind(comp_ind)`
-    = note: expanding `iter_comps! { @ func &mut world.pos, &mut world.vel; |id, pos, vel| {} }`
-    = note: to `|id, pos, vel| {}`
-    = note: expanding `iter_comps! { @ tailcomp comp_ind, id1, &mut world.pos, &mut world.vel; |id, pos, vel| {} }`
+    = note: expanding `iter_comps! { @ func &mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel,
+            yomama| {} }`
+    = note: to `|id, pos, vel, yomama| {}`
+    = note: expanding `iter_comps! { @ tailcomp_skip_first comp_ind, id1, &mut world.pos, &mut world.vel, &mut
+            world.yomama; |id, pos, vel, yomama| {} }`
+    = note: to `iter_comps!
+            (@ tailcomp comp_ind, id1, &mut world.vel, &mut world.yomama; |id, pos, vel,
+            yomama| {})`
+    = note: expanding `iter_comps! { @ tailcomp comp_ind, id1, &mut world.vel, &mut world.yomama; |id, pos, vel,
+            yomama| {} }`
     = note: to `{
-                let (id, comp) = (& mut world.pos).get_mut_comp_ind(comp_ind); assert_eq!
-                (id1, id); comp
-            }, iter_comps! (@ tailcomp comp_ind, id1, &mut world.vel; |id, pos, vel| {});`
+                {
+                    let (id, comp) = (& mut world.vel).get_mut_comp_ind(comp_ind);
+                    assert_eq! (id1, id); comp
+                }, iter_comps!
+                (@ tailcomp comp_ind, id1, &mut world.yomama; |id, pos, vel, yomama| {})
+            }`
     = note: expanding `assert_eq! { id1, id }`
     = note: to `match (& id1, & id)
             {
@@ -142,33 +154,47 @@ warning: unused import: `comp_iter::*`
 5 | use comp_iter::*;
   |     ^^^^^^^^^^^^
 
-error[E0057]: this function takes 3 arguments but 2 arguments were supplied
-   --> src/comp_iter.rs:80:13
+error[E0308]: mismatched types
+   --> src/comp_iter.rs:73:17
     |
-80  |               func(
+73  |                   comp
+    |                   ^^^^ expected `()`, found `&mut Velocity`
+...
+124 | /     iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel, yomama| {
+125 | |
+126 | |     });
+    | |______- in this macro invocation
+    |
+    = note: this error originates in the macro `iter_comps` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0057]: this function takes 4 arguments but 3 arguments were supplied
+   --> src/comp_iter.rs:87:13
+    |
+87  |               func(
     |  _____________^^^^-
-81  | |                 comp1,
-82  | |                 iter_comps!(@tailcomp comp_ind, id1, $($tts)*),
-83  | |             );
+88  | |                 id1,
+89  | |                 comp1,
+90  | |                 iter_comps!(@tailcomp_skip_first comp_ind, id1, $($tts)*),
+91  | |             );
     | |_____________- an argument is missing
 ...
-116 | /     iter_comps!(&mut world.pos, &mut world.vel; |id, pos, vel| {
-117 | |
-118 | |     });
+124 | /     iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel, yomama| {
+125 | |
+126 | |     });
     | |______- in this macro invocation
     |
 note: closure defined here
-   --> src/comp_iter.rs:116:49
+   --> src/comp_iter.rs:124:68
     |
-116 |     iter_comps!(&mut world.pos, &mut world.vel; |id, pos, vel| {
-    |                                                 ^^^^^^^^^^^^^^
+124 |     iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, pos, vel, yomama| {
+    |                                                                    ^^^^^^^^^^^^^^^^^^^^^^
     = note: this error originates in the macro `iter_comps` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: provide the argument
     |
-80  |             func(comp1, iter_comps!(@tailcomp comp_ind, id1, $($tts)*), /* vel */);
-    |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+87  |             func(id1, comp1, iter_comps!(@tailcomp_skip_first comp_ind, id1, $($tts)*), /* yomama */);
+    |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some errors have detailed explanations: E0057, E0658.
+Some errors have detailed explanations: E0057, E0308, E0658.
 For more information about an error, try `rustc --explain E0057`.
 warning: `vec-ecs` (bin "vec-ecs") generated 2 warnings
-error: could not compile `vec-ecs` (bin "vec-ecs") due to 3 previous errors; 2 warnings emitted
+error: could not compile `vec-ecs` (bin "vec-ecs") due to 4 previous errors; 2 warnings emitted
