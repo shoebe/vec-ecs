@@ -2,7 +2,6 @@ pub mod comp_iter;
 pub mod comp_vec;
 pub mod entity_handle;
 
-use comp_iter::*;
 use comp_vec::*;
 use entity_handle::*;
 
@@ -62,10 +61,10 @@ fn main() {
     println!("Hello, world!");
 }
 
-use vec_ecs_macro::comp_iter;
-
 #[test]
 fn test() {
+    use vec_ecs_macro::comp_iter;
+
     let mut world = World::default();
     let e = world.new_entity();
     world.pos.insert(e, Position(0.0, 0.0));

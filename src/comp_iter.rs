@@ -1,4 +1,4 @@
-use fixedbitset::FixedBitSet;
+
 
 use crate::{CompVec, EntityHandle, World};
 
@@ -117,12 +117,12 @@ pub fn test(world: &mut World) {
             assert_eq!(id1, id2);
             assert_eq!(id1, id3);
 
-            (|(id1, comp1, comp2, comp3)| {})((id1, comp1, comp2, comp3));
+            (|(_id1, _comp1, _comp2, _comp3)| {})((id1, comp1, comp2, comp3));
         })
     }
     {}
 
-    iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, (pos, (vel, yomama))| {
+    iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, (_pos, (_vel, _yomama))| {
         dbg!(id);
     });
 }
