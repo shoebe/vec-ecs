@@ -2,10 +2,6 @@ use fixedbitset::FixedBitSet;
 
 use crate::{CompVec, EntityHandle, World};
 
-macro_rules! iter_comps_combo {
-    () => {};
-}
-
 pub struct CompIter;
 
 impl CompIter {
@@ -26,14 +22,8 @@ impl CompIter {
 }
 
 macro_rules! iter_comps {
-    (@getfirstcompowners $first_comp:expr, $($tail:tt)* ) => {
-        ($first_comp).owners().to_owned()
-    };
-    //iter_comps! { @ intersectwithothercompowners, __intersection, &mut world.pos, &mut world.vel; |id, pos, vel| {} }
-    (@intersectwithothercompowners $var:expr, $first_comp:expr, $($comps:expr),*; $($tail:tt)*) => {
-        $(
-            $var.intersect_with(($comps).owners());
-        )*
+    (@first_expr $e:expr, $($tail:tt)*) => {
+        $e
     };
     (@getfirstcomp $comp_ind:expr, &mut $e:expr, $($tail:tt)*) => {
         $e.get_mut_comp_ind($comp_ind)
@@ -41,35 +31,64 @@ macro_rules! iter_comps {
     (@getfirstcomp $comp_ind:expr, &$e:expr, $($tail:tt)*) => {
         $e.get_comp_ind($comp_ind)
     };
-    (@getothercompstuple $id1:expr, $comp_ind:expr, $first:expr, $($tail:tt)* ) => {
-        iter_comps!($id1, $comp_ind, $($tail)*)
+    (@intersections $var:expr, $comp1_skip:expr, $($comps:expr)*; $func:expr) => {
+        $(
+            $var.intersect_with(($comps).owners());
+        )*
     };
-    (@getcompstuple $id1:expr, $comp_ind:expr, &mut $e:expr, $($tail:tt)* ) => {
-        {
-            let (id, comp) = $e.get_mut_comp_ind($comp_ind);
-            assert_eq!(id, id1);
-            comp
-        }, iter_comps!(@getcomp $id1, $comp_ind, $($tail)*)
-    };
-    (@getcompstuple $id1:expr, $comp_ind:expr, &$e:expr, $($tail:tt)* ) => {
-        {
-            let (id, comp) = $e.get_comp_ind($comp_ind);
-            assert_eq!(id, $id1);
-            comp
-        }, iter_comps!(@getcomp $id1, $comp_ind, $($tail)*)
-    };
-    (@get_func $($comps:expr),* ; $func:expr) => {
+    (@func $($comps:expr),*; $func:expr) => {
         $func
     };
-    ($($tail:tt)*) => {{
-        let mut __intersection = iter_comps!(@getfirstcompowners $($tail)*);
+    (@tailcomp_skip_first $comp_ind:expr, $id1:expr, $comp1:expr, $($tail:tt)*) => {
+        iter_comps!(@tailcomp $comp_ind, $id1, $($tail)*)
+    };
+    (@tailcomp $comp_ind:expr, $id1:expr, & $comp:expr; $func:expr) => {
+        {
+            let (id, comp) = $comp.get_comp_ind($comp_ind);
+            assert_eq!($id1, id);
+            comp
+        }
+    };
+    (@tailcomp $comp_ind:expr, $id1:expr, &mut $comp:expr; $func:expr) => {
+        {
+            let (id, comp) = $comp.get_mut_comp_ind($comp_ind);
+            assert_eq!($id1, id);
+            comp
+        }
+    };
+    (@tailcomp $comp_ind:expr, $id1:expr, & $comp:expr, $($tail:tt)*) => {
+        (
+            {
+                let (id, comp) = $comp.get_comp_ind($comp_ind);
+                assert_eq!($id1, id);
+                comp
+            }, iter_comps!(@tailcomp $comp_ind, $id1, $($tail)*)
+        )
+    };
+    (@tailcomp $comp_ind:expr, $id1:expr, &mut $comp:expr, $($tail:tt)*) => {
+        (
+            {
+                let (id, comp) = $comp.get_mut_comp_ind($comp_ind);
+                assert_eq!($id1, id);
+                comp
+            }, iter_comps!(@tailcomp $comp_ind, $id1, $($tail)*)
+        )
+    };
+    (@tailcomp $($tail:tt)*) => {};
+    ($($tts:tt)*) => {{
+        let mut __intersection = iter_comps!(@first_expr $($tts)*).owners().to_owned();
 
-        iter_comps!(@intersectwithothercompowners __intersection, $($tail)*);
+        iter_comps!(@intersections __intersection, $($tts)*);
 
         __intersection.into_ones().for_each(|comp_ind| {
-            let (id1, comp1) = iter_comps!(@getfirstcomp comp_ind, $($tail)*);
-            let func = iter_comps!(@get_func $($tail)*);
-            func(comp1, iter_comps!(@getcompstuple id1, comp_ind, $($tail)*));
+            let (id1, comp1) = iter_comps!(@getfirstcomp comp_ind, $($tts)*);
+
+            let func = iter_comps!(@func $($tts)*);
+            func(
+                id1,
+                comp1,
+                iter_comps!(@tailcomp_skip_first comp_ind, id1, $($tts)*),
+            );
         })
     }};
 }
@@ -101,7 +120,7 @@ pub fn test(world: &mut World) {
         })
     }
     {}
-    trace_macros!(true);
+    //trace_macros!(true);
     iter_comps!(&mut world.pos, &mut world.vel; |id, pos, vel| {
 
     });
