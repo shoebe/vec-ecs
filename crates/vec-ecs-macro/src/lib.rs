@@ -146,9 +146,9 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
             };
             let ident = format_ident!("OptT{count}");
             if is_mut {
-                quote!(vec_ecs::OptionalCombIterHelperMut<'a, #ident>)
+                quote!(vec_ecs::OptionalCompIterHelperMut<'a, #ident>)
             } else {
-                quote!(vec_ecs::OptionalCombIterHelper<'a, #ident>)
+                quote!(vec_ecs::OptionalCompIterHelper<'a, #ident>)
             }
         });
 

@@ -1,6 +1,6 @@
 use crate::{
-    comp_iter::CompIterHelper, CompIterHelperMut, EntityHandle, OptionalCombIterHelper,
-    OptionalCombIterHelperMut,
+    CompIterHelper, CompIterHelperMut, EntityHandle, OptionalCompIterHelper,
+    OptionalCompIterHelperMut,
 };
 use fixedbitset::FixedBitSet;
 
@@ -101,10 +101,10 @@ impl<T> CompVec<T> {
         CompIterHelperMut::new(&mut self.comps, &self.owners)
     }
 
-    pub fn optional_iter_helper(&self) -> OptionalCombIterHelper<T> {
-        OptionalCombIterHelper(CompIterHelper::new(&self.comps, &self.owners))
+    pub fn optional_iter_helper(&self) -> OptionalCompIterHelper<T> {
+        OptionalCompIterHelper(CompIterHelper::new(&self.comps, &self.owners))
     }
-    pub fn optional_iter_helper_mut(&mut self) -> OptionalCombIterHelperMut<T> {
-        OptionalCombIterHelperMut(CompIterHelperMut::new(&mut self.comps, &self.owners))
+    pub fn optional_iter_helper_mut(&mut self) -> OptionalCompIterHelperMut<T> {
+        OptionalCompIterHelperMut(CompIterHelperMut::new(&mut self.comps, &self.owners))
     }
 }

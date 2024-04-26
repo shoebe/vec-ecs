@@ -60,9 +60,9 @@ impl<'a, T> CompIterHelperMut<'a, T> {
     }
 }
 
-pub struct OptionalCombIterHelper<'a, T>(pub CompIterHelper<'a, T>);
+pub struct OptionalCompIterHelper<'a, T>(pub CompIterHelper<'a, T>);
 
-impl<'a, T> OptionalCombIterHelper<'a, T> {
+impl<'a, T> OptionalCompIterHelper<'a, T> {
     pub fn comp_at(&mut self, entity_index: usize) -> Option<(EntityHandle, &'a T)> {
         if self.0.owners.contains(entity_index) {
             Some(self.0.comp_at(entity_index))
@@ -72,9 +72,9 @@ impl<'a, T> OptionalCombIterHelper<'a, T> {
     }
 }
 
-pub struct OptionalCombIterHelperMut<'a, T>(pub CompIterHelperMut<'a, T>);
+pub struct OptionalCompIterHelperMut<'a, T>(pub CompIterHelperMut<'a, T>);
 
-impl<'a, T> OptionalCombIterHelperMut<'a, T> {
+impl<'a, T> OptionalCompIterHelperMut<'a, T> {
     pub fn comp_at(&mut self, entity_index: usize) -> Option<(EntityHandle, &'a mut T)> {
         if self.0.owners.contains(entity_index) {
             Some(self.0.comp_at(entity_index))
@@ -83,3 +83,5 @@ impl<'a, T> OptionalCombIterHelperMut<'a, T> {
         }
     }
 }
+
+pub trait CompIterer {}
