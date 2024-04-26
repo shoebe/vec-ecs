@@ -61,9 +61,9 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
         };
         let ident = format_ident!("T{count}");
         if is_mut {
-            quote!(vec_ecs::CompIterHelper<'a, &'a mut [(EntityHandle, #ident)]>)
+            quote!(vec_ecs::CompIterHelperMut<'a, #ident>)
         } else {
-            quote!(vec_ecs::CompIterHelper<'a, &'a [(EntityHandle, #ident)]>)
+            quote!(vec_ecs::CompIterHelper<'a, #ident>)
         }
     });
 

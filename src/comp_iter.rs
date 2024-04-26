@@ -3,10 +3,10 @@ use crate::EntityHandle;
 pub struct CompIterHelper<'a, T> {
     last: usize,
     owners: &'a fixedbitset::FixedBitSet,
-    vec: T,
+    vec: &'a [(EntityHandle, T)],
 }
 
-impl<'a, T> CompIterHelper<'a, &'a [(EntityHandle, T)]> {
+impl<'a, T> CompIterHelper<'a, T> {
     pub fn new(vec: &'a [(EntityHandle, T)], owners: &'a fixedbitset::FixedBitSet) -> Self {
         Self {
             last: 0,
@@ -28,8 +28,14 @@ impl<'a, T> CompIterHelper<'a, &'a [(EntityHandle, T)]> {
     }
 }
 
-impl<'a, T> CompIterHelper<'a, &'a mut [(EntityHandle, T)]> {
-    pub fn new_mut(vec: &'a mut [(EntityHandle, T)], owners: &'a fixedbitset::FixedBitSet) -> Self {
+pub struct CompIterHelperMut<'a, T> {
+    last: usize,
+    owners: &'a fixedbitset::FixedBitSet,
+    vec: &'a mut [(EntityHandle, T)],
+}
+
+impl<'a, T> CompIterHelperMut<'a, T> {
+    pub fn new(vec: &'a mut [(EntityHandle, T)], owners: &'a fixedbitset::FixedBitSet) -> Self {
         Self {
             last: 0,
             vec,
@@ -42,7 +48,7 @@ impl<'a, T> CompIterHelper<'a, &'a mut [(EntityHandle, T)]> {
         // from https://users.rust-lang.org/t/how-does-vecs-iterator-return-a-mutable-reference/60235/14
         // not entirely sure why this works but I'll take it
         let slice = std::mem::take(&mut self.vec);
-        let (prev, slice) = slice.split_at_mut(comp_ind);
+        let (_prev, slice) = slice.split_at_mut(comp_ind);
         match slice {
             [] => panic!(),
             [(id, out), rest @ ..] => {
@@ -54,19 +60,26 @@ impl<'a, T> CompIterHelper<'a, &'a mut [(EntityHandle, T)]> {
     }
 }
 
-pub struct DualIterator<'a, T1, T2> {
-    ones: fixedbitset::IntoOnes,
-    it1: CompIterHelper<'a, &'a mut [(EntityHandle, T1)]>,
-    it2: CompIterHelper<'a, &'a [(EntityHandle, T2)]>,
-}
-impl<'a, T1, T2> Iterator for DualIterator<'a, T1, T2> {
-    type Item = (EntityHandle, &'a mut T1, &'a T2);
+pub struct OptionalCombIterHelper<'a, T>(pub CompIterHelper<'a, T>);
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.ones.next().map(move |index| {
-            let (id1, comp1) = self.it1.comp_at(index);
-            let (id2, comp2) = self.it2.comp_at(index);
-            (id1, comp1, comp2)
-        })
+impl<'a, T> OptionalCombIterHelper<'a, T> {
+    pub fn comp_at(&mut self, ind: usize) -> Option<(EntityHandle, &'a T)> {
+        if self.0.owners.contains(ind) {
+            Some(self.0.comp_at(ind))
+        } else {
+            None
+        }
+    }
+}
+
+pub struct OptionalCombIterHelperMut<'a, T>(pub CompIterHelperMut<'a, T>);
+
+impl<'a, T> OptionalCombIterHelperMut<'a, T> {
+    pub fn comp_at(&mut self, ind: usize) -> Option<(EntityHandle, &'a mut T)> {
+        if self.0.owners.contains(ind) {
+            Some(self.0.comp_at(ind))
+        } else {
+            None
+        }
     }
 }

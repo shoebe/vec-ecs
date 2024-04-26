@@ -1,4 +1,4 @@
-use crate::{comp_iter::CompIterHelper, EntityHandle};
+use crate::{comp_iter::CompIterHelper, CompIterHelperMut, EntityHandle};
 use fixedbitset::FixedBitSet;
 
 pub struct CompVec<T> {
@@ -91,10 +91,10 @@ impl<T> CompVec<T> {
         &self.owners
     }
 
-    pub fn iter_helper(&self) -> CompIterHelper<&[(EntityHandle, T)]> {
+    pub fn iter_helper(&self) -> CompIterHelper<T> {
         CompIterHelper::new(&self.comps, &self.owners)
     }
-    pub fn iter_helper_mut(&mut self) -> CompIterHelper<&mut [(EntityHandle, T)]> {
-        CompIterHelper::new_mut(&mut self.comps, &self.owners)
+    pub fn iter_helper_mut(&mut self) -> CompIterHelperMut<T> {
+        CompIterHelperMut::new(&mut self.comps, &self.owners)
     }
 }
