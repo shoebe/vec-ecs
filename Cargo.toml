@@ -1,9 +1,14 @@
+workspace = { members = ["crates/vec-ecs-macro"] }
+
 [package]
 name = "vec-ecs"
 version = "0.1.0"
 edition = "2021"
 
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 fixedbitset = "0.5.7"
+vec-ecs-macro = { path = "crates/vec-ecs-macro" }
+proc-macro2 = "1"

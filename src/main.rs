@@ -6,7 +6,10 @@ use comp_iter::*;
 use comp_vec::*;
 use entity_handle::*;
 
+#[derive(Debug)]
 pub struct Position(f32, f32);
+
+#[derive(Debug)]
 pub struct Velocity(f32, f32);
 
 pub struct Entity {
@@ -57,4 +60,18 @@ let vec: &[Position] = world.get_column::<Position>();
 
 fn main() {
     println!("Hello, world!");
+}
+
+use vec_ecs_macro::comp_iter;
+
+#[test]
+fn test() {
+    let mut world = World::default();
+    let e = world.new_entity();
+    world.pos.insert(e, Position(0.0, 0.0));
+    world.vel.insert(e, Velocity(10.0, 0.0));
+
+    comp_iter!(&mut world.pos, &mut world.vel; |id, pos, vel| {
+        dbg!(id, pos, vel);
+    });
 }

@@ -123,6 +123,6 @@ pub fn test(world: &mut World) {
     {}
 
     iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, (pos, (vel, yomama))| {
-
+        dbg!(id);
     });
 }
