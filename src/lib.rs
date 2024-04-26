@@ -5,6 +5,7 @@ mod entity_handle;
 pub use comp_iter::*;
 pub use comp_vec::*;
 pub use entity_handle::*;
+pub use vec_ecs_macro::*;
 
 /*
 Goal:
