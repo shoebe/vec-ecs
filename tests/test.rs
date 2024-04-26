@@ -1,4 +1,4 @@
-use vec_ecs::{CompVec, EntityHandle, EntityHandleCounter};
+use vec_ecs::{CompIter, CompVec, EntityHandle, EntityHandleCounter};
 
 #[derive(Debug)]
 pub struct Position(f32, f32);
@@ -55,8 +55,33 @@ fn test() {
         world.vel.insert(e, Velocity(10.0, 0.0));
         world.yomama.insert(e, ());
     }
-    for (id, pos, vel, yomama) in
+
+    {
+        let e = world.new_entity();
+        world.pos.insert(e, Position(3.0, 0.0));
+        world.vel.insert(e, Velocity(10.0, 0.0));
+        world.yomama.insert(e, ());
+        world.excluded.insert(e, ());
+    }
+
+    {
+        let e = world.new_entity();
+        world.pos.insert(e, Position(3.0, 0.0));
+        world.vel.insert(e, Velocity(10.0, 0.0));
+        world.yomama.insert(e, ());
+    }
+    /* for (id, pos, vel, yomama) in
         comp_iter!(&mut world.pos, &mut world.vel; optional: &world.yomama)
+    {
+        dbg!((id, pos, vel, yomama));
+    } */
+
+    for (id, pos, vel, yomama) in CompIter::new(
+        world.pos.iter_mut(),
+        world.vel.iter_mut(),
+        world.yomama.iter().optional(),
+    )
+    .without(&world.excluded)
     {
         dbg!((id, pos, vel, yomama));
     }

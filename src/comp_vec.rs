@@ -1,7 +1,4 @@
-use crate::{
-    CompIterHelper, CompIterHelperMut, EntityHandle, OptionalCompIterHelper,
-    OptionalCompIterHelperMut,
-};
+use crate::EntityHandle;
 use fixedbitset::FixedBitSet;
 
 pub struct CompVec<T> {
@@ -82,29 +79,15 @@ impl<T> CompVec<T> {
         (*handle, comp)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (EntityHandle, &T)> {
-        self.comps.iter().map(|(id, comp)| (*id, comp))
+    pub fn iter(&self) -> crate::Iter<'_, T> {
+        crate::Iter::new(&self.comps, &self.owners)
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (EntityHandle, &mut T)> {
-        self.comps.iter_mut().map(|(id, comp)| (*id, comp))
+    pub fn iter_mut(&mut self) -> crate::IterMut<'_, T> {
+        crate::IterMut::new(&mut self.comps, &self.owners)
     }
 
     pub fn owners(&self) -> &FixedBitSet {
         &self.owners
-    }
-
-    pub fn iter_helper(&self) -> CompIterHelper<T> {
-        CompIterHelper::new(&self.comps, &self.owners)
-    }
-    pub fn iter_helper_mut(&mut self) -> CompIterHelperMut<T> {
-        CompIterHelperMut::new(&mut self.comps, &self.owners)
-    }
-
-    pub fn optional_iter_helper(&self) -> OptionalCompIterHelper<T> {
-        OptionalCompIterHelper(CompIterHelper::new(&self.comps, &self.owners))
-    }
-    pub fn optional_iter_helper_mut(&mut self) -> OptionalCompIterHelperMut<T> {
-        OptionalCompIterHelperMut(CompIterHelperMut::new(&mut self.comps, &self.owners))
     }
 }
