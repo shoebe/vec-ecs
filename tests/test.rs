@@ -76,11 +76,11 @@ fn test() {
         dbg!((id, pos, vel, yomama));
     } */
 
-    for (id, pos, vel, yomama) in CompIter::new(
+    for (id, pos, vel, yomama) in CompIter::from((
         world.pos.iter_mut(),
         world.vel.iter_mut(),
         world.yomama.iter().optional(),
-    )
+    ))
     .without(&world.excluded)
     {
         dbg!((id, pos, vel, yomama));

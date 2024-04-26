@@ -1,4 +1,4 @@
-use crate::{entity_handle, CompVec, EntityHandle};
+use crate::{CompVec, EntityHandle};
 
 pub struct Iter<'a, T> {
     next_entity_ind: usize,
@@ -198,49 +198,72 @@ impl<T> CompIter<T> {
 //impl_iterer!(T2, T3, T4, T5 ; comp2, comp3, comp4, comp5)
 
 macro_rules! impl_iterer {
-    ($($generics:ty),* ; $($names:ident),*) => {};
-}
+    ($($generics:ident),* ; $($names:ident),*) => {
+        impl<T1: NonOptionalCompIterer, $($generics: CompIterer, )*> From<(T1, $($generics),*)> for CompIter<(T1, $($generics),*)> {
+            fn from(comps: (T1, $($generics),*)) -> Self {
+                let (
+                    comp1,
+                    $(
+                        $names,
+                    )*
+                ) = comps;
 
-impl<T1: NonOptionalCompIterer, T2: CompIterer, T3: CompIterer> CompIter<(T1, T2, T3)> {
-    pub fn new(comp1: T1, comp2: T2, comp3: T3) -> Self {
-        let mut owners = comp1.owners().to_owned();
-        comp2.combine_owners(&mut owners);
-        comp3.combine_owners(&mut owners);
-        Self {
-            comps: (comp1, comp2, comp3),
-            owners,
+                #[allow(unused_mut)]
+                let mut owners = comp1.owners().to_owned();
+                $(
+                    $names.combine_owners(&mut owners);
+                )*
+                Self {
+                    comps: (comp1, $($names,)*),
+                    owners,
+                }
+            }
         }
-    }
-}
 
-impl<T1: NonOptionalCompIterer, T2: CompIterer, T3: CompIterer> IntoIterator
-    for CompIter<(T1, T2, T3)>
-{
-    type IntoIter = IntoCompIter<(T1, T2, T3)>;
-    type Item = <IntoCompIter<(T1, T2, T3)> as std::iter::Iterator>::Item;
+        impl<T1: NonOptionalCompIterer, $($generics: CompIterer, )* > IntoIterator
+            for CompIter<(T1, $($generics),*)>
+        {
+            type IntoIter = IntoCompIter<(T1, $($generics),*)>;
+            type Item = <IntoCompIter<(T1, $($generics),*)> as std::iter::Iterator>::Item;
 
-    fn into_iter(self) -> Self::IntoIter {
-        IntoCompIter {
-            comps: self.comps,
-            ones: self.owners.into_ones(),
+            fn into_iter(self) -> Self::IntoIter {
+                IntoCompIter {
+                    comps: self.comps,
+                    ones: self.owners.into_ones(),
+                }
+            }
         }
-    }
-}
 
-impl<T1: NonOptionalCompIterer, T2: CompIterer, T3: CompIterer> Iterator
-    for IntoCompIter<(T1, T2, T3)>
-{
-    type Item = (EntityHandle, T1::Item, T2::Item, T3::Item);
+        impl<T1: NonOptionalCompIterer, $($generics: CompIterer, )* > Iterator
+            for IntoCompIter<(T1, $($generics),*)>
+        {
+            type Item = (EntityHandle, T1::Item, $($generics::Item, )*);
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.ones.next().map(|index| {
-            let (id1, comp1) = self.comps.0.comp_at_index(index);
-            (
-                id1,
-                comp1,
-                self.comps.1.comp_at(id1),
-                self.comps.2.comp_at(id1),
-            )
-        })
-    }
+            fn next(&mut self) -> Option<Self::Item> {
+                self.ones.next().map(|index| {
+                    let (
+                        comp1,
+                        $(
+                            $names,
+                        )*
+                    ) = &mut self.comps;
+                    let (id1, comp1) = comp1.comp_at_index(index);
+                    (
+                        id1,
+                        comp1,
+                        $(
+                            $names.comp_at(id1),
+                        )*
+                    )
+                })
+            }
+        }
+    };
 }
+impl_iterer!(;);
+impl_iterer!(T2; comp2);
+impl_iterer!(T2, T3; comp2, comp3);
+impl_iterer!(T2, T3, T4; comp2, comp3, comp4);
+impl_iterer!(T2, T3, T4, T5; comp2, comp3, comp4, comp5);
+impl_iterer!(T2, T3, T4, T5, T6; comp2, comp3, comp4, comp5, comp6);
+impl_iterer!(T2, T3, T4, T5, T6, T7; comp2, comp3, comp4, comp5, comp6, comp7);
