@@ -55,7 +55,9 @@ fn test() {
         world.vel.insert(e, Velocity(10.0, 0.0));
         world.yomama.insert(e, ());
     }
-    for (id, pos, vel, yomama) in comp_iter!(&mut world.pos, &mut world.vel, &world.yomama) {
+    for (id, pos, vel, yomama) in
+        comp_iter!(&mut world.pos, &mut world.vel; optional: &world.yomama)
+    {
         dbg!((id, pos, vel, yomama));
     }
 }

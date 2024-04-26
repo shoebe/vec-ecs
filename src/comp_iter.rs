@@ -14,14 +14,14 @@ impl<'a, T> CompIterHelper<'a, T> {
             owners,
         }
     }
-    pub fn comp_at(&mut self, ind: usize) -> (EntityHandle, &'a T) {
-        let comp_ind = self.owners.count_ones(self.last..ind);
+    pub fn comp_at(&mut self, entity_index: usize) -> (EntityHandle, &'a T) {
+        let comp_ind = self.owners.count_ones(self.last..entity_index);
         self.vec = &self.vec[comp_ind..];
         match self.vec {
             [] => panic!(),
             [(id, out), rest @ ..] => {
                 self.vec = rest;
-                self.last = ind + 1;
+                self.last = entity_index + 1;
                 (*id, out)
             }
         }
@@ -42,8 +42,8 @@ impl<'a, T> CompIterHelperMut<'a, T> {
             owners,
         }
     }
-    pub fn comp_at(&mut self, ind: usize) -> (EntityHandle, &'a mut T) {
-        let comp_ind = self.owners.count_ones(self.last..ind);
+    pub fn comp_at(&mut self, entity_index: usize) -> (EntityHandle, &'a mut T) {
+        let comp_ind = self.owners.count_ones(self.last..entity_index);
 
         // from https://users.rust-lang.org/t/how-does-vecs-iterator-return-a-mutable-reference/60235/14
         // not entirely sure why this works but I'll take it
@@ -53,7 +53,7 @@ impl<'a, T> CompIterHelperMut<'a, T> {
             [] => panic!(),
             [(id, out), rest @ ..] => {
                 self.vec = rest;
-                self.last = ind + 1;
+                self.last = entity_index + 1;
                 (*id, out)
             }
         }
@@ -63,9 +63,9 @@ impl<'a, T> CompIterHelperMut<'a, T> {
 pub struct OptionalCombIterHelper<'a, T>(pub CompIterHelper<'a, T>);
 
 impl<'a, T> OptionalCombIterHelper<'a, T> {
-    pub fn comp_at(&mut self, ind: usize) -> Option<(EntityHandle, &'a T)> {
-        if self.0.owners.contains(ind) {
-            Some(self.0.comp_at(ind))
+    pub fn comp_at(&mut self, entity_index: usize) -> Option<(EntityHandle, &'a T)> {
+        if self.0.owners.contains(entity_index) {
+            Some(self.0.comp_at(entity_index))
         } else {
             None
         }
@@ -75,9 +75,9 @@ impl<'a, T> OptionalCombIterHelper<'a, T> {
 pub struct OptionalCombIterHelperMut<'a, T>(pub CompIterHelperMut<'a, T>);
 
 impl<'a, T> OptionalCombIterHelperMut<'a, T> {
-    pub fn comp_at(&mut self, ind: usize) -> Option<(EntityHandle, &'a mut T)> {
-        if self.0.owners.contains(ind) {
-            Some(self.0.comp_at(ind))
+    pub fn comp_at(&mut self, entity_index: usize) -> Option<(EntityHandle, &'a mut T)> {
+        if self.0.owners.contains(entity_index) {
+            Some(self.0.comp_at(entity_index))
         } else {
             None
         }
