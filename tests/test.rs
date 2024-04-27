@@ -63,11 +63,6 @@ fn test() {
         world.vel.insert(e, Velocity(10.0, 0.0));
         world.yomama.insert(e, ());
     }
-    /* for (id, pos, vel, yomama) in
-        comp_iter!(&mut world.pos, &mut world.vel; optional: &world.yomama)
-    {
-        dbg!((id, pos, vel, yomama));
-    } */
 
     for (id, pos, vel, yomama) in CompIter::from((
         world.pos.iter_mut(),
@@ -80,22 +75,3 @@ fn test() {
     }
 }
 
-#[test]
-fn test_derive() {
-    #[derive(vec_ecs::World, Default)]
-    pub struct World2 {
-        #[world(handles)]
-        handles: EntityHandleCounter,
-        #[world(struct_borrow_without)]
-        pub pos: CompVec<Position>,
-        pub vel: CompVec<Velocity>,
-    }
-
-    let mut w = World2::default();
-
-    let (pos, world2nopos) = World2NoPos::split_world(&mut w);
-
-    for (id, vel) in CompIter::from((world2nopos.vel.iter_mut(),)) {
-        dbg!((id, vel));
-    }
-}

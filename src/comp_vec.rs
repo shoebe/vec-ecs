@@ -1,6 +1,7 @@
 use crate::EntityHandle;
 use fixedbitset::FixedBitSet;
 
+#[derive(Debug)]
 pub struct CompVec<T> {
     comps: Vec<(EntityHandle, T)>,
     owners: FixedBitSet,

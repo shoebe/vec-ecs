@@ -1,13 +1,10 @@
 use heck::ToPascalCase;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{
-    parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned, Attribute,
-    DeriveInput, Expr, ExprReference, Ident, Token,
-};
+use syn::{parse_macro_input, DeriveInput};
 
 #[proc_macro_derive(World, attributes(world))]
-pub fn comp_iter(input: TokenStream) -> TokenStream {
+pub fn world_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     //panic!("{:#?}", input);
 
@@ -30,7 +27,8 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
                         handles_field = Some(field);
                     }
                     Ok(())
-                });
+                })
+                .unwrap();
             }
         }
     }
@@ -58,6 +56,7 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
         let field_type = &field.ty;
 
         quote! {
+            #[derive(Debug)]
             pub struct #struct_name <'a> {
                 #(
                     #field_names: &'a mut #field_types,
@@ -76,6 +75,8 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
                     )
                 }
             }
+
+            impl<'a> vec_ecs::WorldBorrow for #struct_name <'a> {}
         }
     });
 
@@ -92,15 +93,67 @@ pub fn comp_iter(input: TokenStream) -> TokenStream {
             #struct_defs
         )*
 
-        impl #name {
-            pub fn new_entity(&mut self) -> EntityHandle {
+        impl vec_ecs::World for #name {
+            fn new_entity(&mut self) -> vec_ecs::EntityHandle {
                 self. #handles_name .next_handle()
             }
-            pub fn delete_entity(&mut self, entity: EntityHandle) {
+            fn delete_entity(&mut self, entity: vec_ecs::EntityHandle) {
                 self. #handles_name .entity_deleted();
                 #(
                     self. #field_names_other_than_handles . remove(entity);
                 )*
+            }
+        }
+
+        impl vec_ecs::WorldBorrow for #name {}
+    };
+    proc_macro::TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(Entity, attributes(entity))]
+pub fn entity_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let name = &input.ident;
+    let name_borrow = format_ident!("{name}Borrow");
+    let world_name = format_ident!("World");
+
+    let st = match input.data {
+        syn::Data::Struct(st) => st,
+        syn::Data::Enum(_) | syn::Data::Union(_) => todo!(),
+    };
+    let field_names: Vec<_> = st
+        .fields
+        .iter()
+        .map(|f| f.ident.as_ref().unwrap())
+        .collect();
+    let field_types: Vec<_> = st.fields.iter().map(|f| &f.ty).collect();
+
+    let expanded = quote! {
+        impl vec_ecs::Entity for #name {
+            type WorldInsert = #world_name;
+            fn insert_into_world(self, id: vec_ecs::EntityHandle, world: &mut Self::WorldInsert) {
+                #(
+                    world. #field_names .insert(id, self. #field_names);
+                )*
+            }
+        }
+
+        #[derive(Debug)]
+        struct #name_borrow <'a> {
+            #(
+                #field_names: &'a mut #field_types,
+            )*
+        }
+        impl<'a> vec_ecs::EntityBorrow for #name_borrow <'a> {
+            type WorldBorrow = &'a mut #world_name;
+
+            fn borrow(handle: vec_ecs::EntityHandle, world: Self::WorldBorrow) -> Self {
+                Self {
+                    #(
+                        #field_names: world. #field_names .get_mut(handle).unwrap(),
+                    )*
+                }
             }
         }
     };
