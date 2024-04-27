@@ -62,8 +62,7 @@ impl<'a, T> IterMut<'a, T> {
 
         // from https://users.rust-lang.org/t/how-does-vecs-iterator-return-a-mutable-reference/60235/14
         let slice = std::mem::take(&mut self.vec);
-        let (_prev, slice) = slice.split_at_mut(advance_by);
-        self.vec = slice;
+        self.vec = &mut slice[advance_by..];
 
         self.next_entity_ind = entity_index;
     }
@@ -108,6 +107,9 @@ impl<'a, T> CompIterer for Iter<'a, T> {
     fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
         self.advance_to(entity_handle.index());
         let (handle2, comp) = self.next().unwrap();
+        // TODO: asserting here is not ideal
+        //       maybe have this function return a Result<Self::Item>?
+        //       The iterer can iter again if it's err
         assert_eq!(entity_handle, handle2);
         comp
     }
@@ -123,6 +125,9 @@ impl<'a, T> CompIterer for IterMut<'a, T> {
     fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
         self.advance_to(entity_handle.index());
         let (handle2, comp) = self.next().unwrap();
+        // TODO: asserting here is not ideal
+        //       maybe have this function return a Result<Self::Item>?
+        //       The iterer can iter again if it's err
         assert_eq!(entity_handle, handle2);
         comp
     }
