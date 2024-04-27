@@ -76,7 +76,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                 }
             }
 
-            impl<'a> vec_ecs::WorldBorrow for #struct_name <'a> {}
+            impl<'a, 'b: 'a> vec_ecs::WorldBorrow<'a> for #struct_name <'b> {}
         }
     });
 
@@ -105,7 +105,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl vec_ecs::WorldBorrow for #name {}
+        impl<'a> vec_ecs::WorldBorrow<'a> for #name {}
     };
     proc_macro::TokenStream::from(expanded)
 }
@@ -156,19 +156,31 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
 
     let world_borrow_impls = world_borrow_names.iter().map(|world_borrow_name| {
         quote! {
-             impl<'a> vec_ecs::EntityBorrow for #name_borrow <'a> {
-                 type WorldBorrow = &'a mut #world_borrow_name<'a>;
-
-                 fn borrow(handle: vec_ecs::EntityHandle, world: Self::WorldBorrow) -> Self {
-                     Self {
-                         #(
-                             #field_names: world. #field_names .get_mut(handle).unwrap(),
-                         )*
-                     }
-                 }
-             }
+            impl<'a, 'b: 'a> vec_ecs::EntityBorrow<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
+                fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
+                    Self {
+                        #(
+                            #field_names: world. #field_names .get_mut(handle).unwrap(),
+                        )*
+                    }
+                }
+            }
         }
-    });
+    }).chain(
+        std::iter::once(
+            quote! {
+                impl<'a> vec_ecs::EntityBorrow<'a, #world_insert_name> for #name_borrow <'a> {
+                    fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
+                        Self {
+                            #(
+                                #field_names: world. #field_names .get_mut(handle).unwrap(),
+                            )*
+                        }
+                    }
+                }
+            }
+        )
+    );
 
     let expanded = quote! {
         impl vec_ecs::Entity for #name {

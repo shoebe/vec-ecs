@@ -55,4 +55,7 @@ fn test_derive() {
     {
         dbg!((id, vel, flag));
     }
+
+    let e_borr: EntityBorrow = world.borrow_entity(handle);
+    dbg!(&e_borr);
 }

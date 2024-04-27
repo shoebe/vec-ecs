@@ -10,11 +10,8 @@ pub trait World: Sized {
     }
 }
 
-pub trait WorldBorrow: Sized {
-    fn borrow_entity<'a, T: EntityBorrow<WorldBorrow = &'a mut Self>>(
-        &'a mut self,
-        entity_handle: EntityHandle,
-    ) -> T {
+pub trait WorldBorrow<'a>: Sized {
+    fn borrow_entity<T: EntityBorrow<'a, Self>>(&'a mut self, entity_handle: EntityHandle) -> T {
         T::borrow(entity_handle, self)
     }
 }
