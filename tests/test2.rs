@@ -21,8 +21,9 @@ fn test_derive() {
     }
 
     #[derive(vec_ecs::Entity, Debug)]
+    #[entity(insert = World)]
+    #[entity(borrow = WorldNoPos)]
     pub struct Entity {
-        pos: Position,
         vel: Velocity,
         flags: Flag,
     }
@@ -30,23 +31,21 @@ fn test_derive() {
     let mut world = World::default();
 
     let e = Entity {
-        pos: Position(0.0, 5.0),
         vel: Velocity(10.0, 10.0),
         flags: Flag(true),
     };
     world.insert(e);
 
     let e = Entity {
-        pos: Position(2.0, 0.0),
         vel: Velocity(10.0, 0.0),
         flags: Flag(false),
     };
     let handle = world.insert(e);
 
-    let e_borr: EntityBorrow = world.borrow_entity(handle);
-    dbg!(e_borr);
+    let (pos, mut world_no_pos) = WorldNoPos::split_world(&mut world);
 
-    let (pos, world_no_pos) = WorldNoPos::split_world(&mut world);
+    let e_borr: EntityBorrow = world_no_pos.borrow_entity(handle);
+    dbg!(&e_borr);
 
     for (id, pos) in pos.iter_mut() {
         dbg!((id, pos));
