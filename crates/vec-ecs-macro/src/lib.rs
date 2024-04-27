@@ -20,13 +20,18 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         for attr in field.attrs.iter() {
             if attr.path().is_ident("world") {
                 attr.parse_nested_meta(|meta| {
-                    if meta.path.is_ident("struct_borrow_without") {
-                        fields_borrow_without.push(field);
-                    }
                     if meta.path.is_ident("handles") {
                         handles_field = Some(field);
+                        Ok(())
+                    } else if meta.path.is_ident("without") {
+                        // this parses the `without`
+                        let value = meta.value()?; // this parses the `=`
+                        let s: Ident = value.parse()?; // this parses `"World"`
+                        fields_borrow_without.push((field, s));
+                        Ok(())
+                    } else {
+                        Err(meta.error("unsupported attribute"))
                     }
-                    Ok(())
                 })
                 .unwrap();
             }
@@ -34,9 +39,10 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
     }
     let handles_field = handles_field.unwrap();
 
-    let struct_defs = fields_borrow_without.iter().map(|field| {
-        let field_name_caps = field.ident.as_ref().unwrap().to_string().to_pascal_case();
-        let struct_name = format_ident!("{name}No{field_name_caps}");
+    let struct_defs = fields_borrow_without.iter().map(|(field, struct_name)| {
+        //let field_name_caps = field.ident.as_ref().unwrap().to_string().to_pascal_case();
+        //let struct_name = format_ident!("{name}No{field_name_caps}");
+
         let field_types = st
             .fields
             .iter()

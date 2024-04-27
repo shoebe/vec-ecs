@@ -14,7 +14,7 @@ fn test_derive() {
     pub struct World {
         #[world(handles)]
         handles: EntityHandleCounter,
-        #[world(struct_borrow_without)]
+        #[world(without = WorldNoPos)]
         pub pos: CompVec<Position>,
         pub vel: CompVec<Velocity>,
         pub flags: CompVec<Flag>,
