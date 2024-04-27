@@ -1,245 +1,108 @@
+use heck::ToPascalCase;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned, Expr, ExprReference,
-    Ident, Token,
+    parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned, Attribute,
+    DeriveInput, Expr, ExprReference, Ident, Token,
 };
 
-/*
-iter_comps!(&mut world.pos, &mut world.vel, &mut world.yomama; |id, (pos, (vel, yomama))| {
-    dbg!(id);
-});
-
-*/
-
-struct CompIter {
-    borrows: Punctuated<Expr, Token![,]>,
-    optional_borrows: Option<Punctuated<Expr, Token![,]>>,
-}
-
-impl Parse for CompIter {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let borrows = Punctuated::parse_separated_nonempty(input)?;
-
-        let optional_borrows = if input.parse::<Token![;]>().is_ok() {
-            let is_opt = if let Ok(ident) = input.parse::<Ident>() {
-                ident == "optional"
-            } else {
-                false
-            };
-            if is_opt {
-                input.parse::<Token![:]>()?;
-                Some(Punctuated::parse_separated_nonempty(input)?)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        Ok(Self {
-            borrows,
-            optional_borrows,
-        })
-    }
-}
-
-#[proc_macro]
+#[proc_macro_derive(World, attributes(world))]
 pub fn comp_iter(input: TokenStream) -> TokenStream {
-    let CompIter {
-        borrows,
-        optional_borrows,
-    } = parse_macro_input!(input as CompIter);
+    let input = parse_macro_input!(input as DeriveInput);
+    //panic!("{:#?}", input);
 
-    let intersections = {
-        let mut others = borrows.iter();
-        let first = others.next().unwrap();
-
-        quote! {
-            let mut inter = (#first).owners().clone();
-            #(
-                inter.intersect_with((#others).owners());
-            )*
-        }
+    let name = &input.ident;
+    let st = match input.data {
+        syn::Data::Struct(st) => st,
+        syn::Data::Enum(_) | syn::Data::Union(_) => todo!(),
     };
+    let mut fields_borrow_without = Vec::new();
+    let mut handles_field = None;
 
-    let helper_names: Vec<_> = borrows
-        .iter()
-        .enumerate()
-        .map(|(num, _)| format_ident!("helper_{num}"))
-        .collect();
-
-    let opt_helper_names: Vec<_> = optional_borrows
-        .iter()
-        .flatten()
-        .enumerate()
-        .map(|(num, _)| format_ident!("opt_helper_{num}"))
-        .collect();
-
-    let comps_helper_iter_init = {
-        let creation_funcs = borrows.iter().map(|field| {
-            let is_mut = if let Expr::Reference(r) = &field {
-                r.mutability.is_some()
-            } else {
-                false
-            };
-            if is_mut {
-                quote!((#field).iter_helper_mut())
-            } else {
-                quote!((#field).iter_helper())
+    for field in st.fields.iter() {
+        for attr in field.attrs.iter() {
+            if attr.path().is_ident("world") {
+                attr.parse_nested_meta(|meta| {
+                    if meta.path.is_ident("struct_borrow_without") {
+                        fields_borrow_without.push(field);
+                    }
+                    if meta.path.is_ident("handles") {
+                        handles_field = Some(field);
+                    }
+                    Ok(())
+                });
             }
-        });
-        let opt_creation_funcs = optional_borrows.iter().flatten().map(|field| {
-            let is_mut = if let Expr::Reference(r) = &field {
-                r.mutability.is_some()
-            } else {
-                false
-            };
-            if is_mut {
-                quote!((#field).optional_iter_helper_mut())
-            } else {
-                quote!((#field).optional_iter_helper())
-            }
-        });
-
-        quote! {
-            #(
-                let mut #helper_names = #creation_funcs;
-            )*
-            #(
-                let mut #opt_helper_names = #opt_creation_funcs;
-            )*
         }
-    };
+    }
+    let handles_field = handles_field.unwrap();
 
-    let helper_generics: Vec<_> = (0..helper_names.len())
-        .map(|num| format_ident!("T{num}"))
-        .collect();
-
-    let opt_helper_generics: Vec<_> = (0..opt_helper_names.len())
-        .map(|num| format_ident!("OptT{num}"))
-        .collect();
-
-    let helper_types = borrows.iter().enumerate().map(|(count, field)| {
-        let is_mut = if let Expr::Reference(r) = &field {
-            r.mutability.is_some()
-        } else {
-            false
-        };
-        let ident = format_ident!("T{count}");
-        if is_mut {
-            quote!(vec_ecs::CompIterHelperMut<'a, #ident>)
-        } else {
-            quote!(vec_ecs::CompIterHelper<'a, #ident>)
-        }
-    });
-
-    let opt_helper_types = optional_borrows
-        .iter()
-        .flatten()
-        .enumerate()
-        .map(|(count, field)| {
-            let is_mut = if let Expr::Reference(r) = &field {
-                r.mutability.is_some()
-            } else {
-                false
-            };
-            let ident = format_ident!("OptT{count}");
-            if is_mut {
-                quote!(vec_ecs::OptionalCompIterHelperMut<'a, #ident>)
-            } else {
-                quote!(vec_ecs::OptionalCompIterHelper<'a, #ident>)
-            }
-        });
-
-    let helper_generic_borrows = borrows.iter().enumerate().map(|(count, field)| {
-        let is_mut = if let Expr::Reference(r) = &field {
-            r.mutability.is_some()
-        } else {
-            false
-        };
-        let ident = format_ident!("T{count}");
-        if is_mut {
-            quote!(&'a mut  #ident)
-        } else {
-            quote!(&'a #ident)
-        }
-    });
-
-    let opt_helper_generic_borrows =
-        optional_borrows
+    let struct_defs = fields_borrow_without.iter().map(|field| {
+        let field_name_caps = field.ident.as_ref().unwrap().to_string().to_pascal_case();
+        let struct_name = format_ident!("{name}No{field_name_caps}");
+        let field_types = st
+            .fields
             .iter()
-            .flatten()
-            .enumerate()
-            .map(|(count, field)| {
-                let is_mut = if let Expr::Reference(r) = &field {
-                    r.mutability.is_some()
-                } else {
-                    false
-                };
-                let ident = format_ident!("OptT{count}");
-                if is_mut {
-                    quote!(Option<&'a mut #ident>)
-                } else {
-                    quote!(Option<&'a #ident>)
-                }
-            });
+            .filter(|field2| *field2 != *field)
+            .filter(|field2| *field2 != handles_field)
+            .map(|field| &field.ty);
 
-    let mut helper_names_no_first = helper_names.iter();
-    helper_names_no_first.next().unwrap(); // this is helper_0
+        let field_names: Vec<_> = st
+            .fields
+            .iter()
+            .filter(|field2| *field2 != *field)
+            .filter(|field2| *field2 != handles_field)
+            .map(|field| field.ident.as_ref().unwrap())
+            .collect();
+
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;
+
+        quote! {
+            pub struct #struct_name <'a> {
+                #(
+                    #field_names: &'a mut #field_types,
+                )*
+            }
+
+            impl<'a> #struct_name <'a>{
+                pub fn split_world(world: &'a mut #name) -> (&'a mut #field_type, Self) {
+                    (
+                        &mut world. #field_name,
+                        Self {
+                            #(
+                                #field_names: &mut world. #field_names,
+                            )*
+                        }
+                    )
+                }
+            }
+        }
+    });
+
+    let handles_name = handles_field.ident.as_ref().unwrap();
+
+    let field_names_other_than_handles = st
+        .fields
+        .iter()
+        .filter(|field| *field != handles_field)
+        .map(|field| field.ident.as_ref().unwrap());
 
     let expanded = quote! {
-        {
-            #intersections
+        #(
+            #struct_defs
+        )*
 
-            #comps_helper_iter_init
-
-            pub struct MultipleComponentsIter<'a, #(#helper_generics, )* #(#opt_helper_generics, )*> {
-                ones: fixedbitset::IntoOnes,
-                #(
-                    #helper_names: #helper_types,
-                )*
-                #(
-                    #opt_helper_names: #opt_helper_types,
-                )*
+        impl #name {
+            pub fn new_entity(&mut self) -> EntityHandle {
+                self. #handles_name .next_handle()
             }
-            impl<'a, #(#helper_generics, )* #(#opt_helper_generics, )*> Iterator for MultipleComponentsIter<'a, #(#helper_generics, )* #(#opt_helper_generics, )*> {
-                type Item = (EntityHandle, #(#helper_generic_borrows, )* #(#opt_helper_generic_borrows, )*);
-
-                fn next(&mut self) -> Option<Self::Item> {
-                    self.ones.next().map(|entity_ind| {
-                        let (id1, comp1) = self.helper_0.comp_at(entity_ind);
-                        (
-                            id1,
-                            comp1,
-                            #(
-                                {
-                                    let (id, comp) = self. #helper_names_no_first .comp_at(entity_ind);
-                                    assert_eq!(id1, id);
-                                    comp
-                                },
-                            )*
-                            #(
-                                self. #opt_helper_names .comp_at(entity_ind).map(|(id, comp)| {
-                                    assert_eq!(id1, id);
-                                    comp
-                                }),
-                            )*
-                        )
-                    })
-                }
-            }
-            MultipleComponentsIter {
-                ones: inter.into_ones(),
+            pub fn delete_entity(&mut self, entity: EntityHandle) {
+                self. #handles_name .entity_deleted();
                 #(
-                    #helper_names,
-                )*
-                #(
-                    #opt_helper_names,
+                    self. #field_names_other_than_handles . remove(entity);
                 )*
             }
         }
     };
-
-    TokenStream::from(expanded)
+    proc_macro::TokenStream::from(expanded)
 }

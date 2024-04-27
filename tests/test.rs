@@ -6,11 +6,6 @@ pub struct Position(f32, f32);
 #[derive(Debug)]
 pub struct Velocity(f32, f32);
 
-pub struct Entity {
-    pub position: Position,
-    pub velocity: Velocity,
-}
-
 #[derive(Default)]
 pub struct World {
     handles: EntityHandleCounter,
@@ -33,8 +28,6 @@ impl World {
 
 #[test]
 fn test() {
-    use vec_ecs_macro::comp_iter;
-
     let mut world = World::default();
     {
         let e = world.new_entity();
@@ -84,5 +77,25 @@ fn test() {
     .without(&world.excluded)
     {
         dbg!((id, pos, vel, yomama));
+    }
+}
+
+#[test]
+fn test_derive() {
+    #[derive(vec_ecs::World, Default)]
+    pub struct World2 {
+        #[world(handles)]
+        handles: EntityHandleCounter,
+        #[world(struct_borrow_without)]
+        pub pos: CompVec<Position>,
+        pub vel: CompVec<Velocity>,
+    }
+
+    let mut w = World2::default();
+
+    let (pos, world2nopos) = World2NoPos::split_world(&mut w);
+
+    for (id, vel) in CompIter::from((world2nopos.vel.iter_mut(),)) {
+        dbg!((id, vel));
     }
 }
