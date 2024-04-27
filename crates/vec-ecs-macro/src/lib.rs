@@ -1,7 +1,6 @@
-use heck::ToPascalCase;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, token, DeriveInput, Ident, LitStr};
+use syn::{parse_macro_input, DeriveInput, Ident};
 
 #[proc_macro_derive(World, attributes(world))]
 pub fn world_derive(input: TokenStream) -> TokenStream {
@@ -46,15 +45,15 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         let field_types = st
             .fields
             .iter()
-            .filter(|field2| *field2 != *field)
-            .filter(|field2| *field2 != handles_field)
+            .filter(|field2| field2.ident != field.ident)
+            .filter(|field2| field2.ident != handles_field.ident)
             .map(|field| &field.ty);
 
         let field_names: Vec<_> = st
             .fields
             .iter()
-            .filter(|field2| *field2 != *field)
-            .filter(|field2| *field2 != handles_field)
+            .filter(|field2| field2.ident != field.ident)
+            .filter(|field2| field2.ident != handles_field.ident)
             .map(|field| field.ident.as_ref().unwrap())
             .collect();
 
@@ -93,7 +92,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
     let field_names_other_than_handles = st
         .fields
         .iter()
-        .filter(|field| *field != handles_field)
+        .filter(|field| field.ident != handles_field.ident)
         .map(|field| field.ident.as_ref().unwrap());
 
     let expanded = quote! {

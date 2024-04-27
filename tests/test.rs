@@ -1,24 +1,25 @@
-use vec_ecs::{CompIter, CompVec, EntityHandle, EntityHandleCounter, WorldTrait};
-
-#[derive(Debug, Default)]
-pub struct Position(f32, f32);
-
-#[derive(Debug, Default)]
-pub struct Velocity(f32, f32);
-
-#[derive(vec_ecs::World, Default)]
-pub struct World {
-    #[world(handles)]
-    handles: EntityHandleCounter,
-    pub pos: CompVec<Position>,
-    pub vel: CompVec<Velocity>,
-    #[world(split_off = WorldNoNothing)]
-    pub nothing: CompVec<()>,
-    pub excluded: CompVec<()>,
-}
-
 #[test]
+#[allow(dead_code)]
 fn test() {
+    use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldTrait};
+
+    #[derive(Debug, Default)]
+    pub struct Position(f32, f32);
+
+    #[derive(Debug, Default)]
+    pub struct Velocity(f32, f32);
+
+    #[derive(vec_ecs::World, Default)]
+    pub struct World {
+        #[world(handles)]
+        handles: EntityHandleCounter,
+        pub pos: CompVec<Position>,
+        pub vel: CompVec<Velocity>,
+        #[world(split_off = WorldNoNothing)]
+        pub nothing: CompVec<()>,
+        pub excluded: CompVec<()>,
+    }
+
     let mut world = World::default();
     {
         let e = world.new_entity();

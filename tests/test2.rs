@@ -1,15 +1,16 @@
-use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldBorrowTrait, WorldTrait};
-#[derive(Debug)]
-pub struct Position(f32, f32);
-
-#[derive(Debug)]
-pub struct Velocity(f32, f32);
-
-#[derive(Debug)]
-pub struct Flag(bool);
-
 #[test]
+#[allow(dead_code)]
 fn test_derive() {
+    use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldBorrowTrait, WorldTrait};
+    #[derive(Debug)]
+    pub struct Position(f32, f32);
+
+    #[derive(Debug)]
+    pub struct Velocity(f32, f32);
+
+    #[derive(Debug)]
+    pub struct Flag(bool);
+
     #[derive(vec_ecs::World, Default)]
     pub struct World {
         #[world(handles)]
