@@ -105,10 +105,10 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             fn new_entity(&mut self) -> vec_ecs::EntityHandle {
                 self. #handles_name .next_handle()
             }
-            fn delete_entity(&mut self, entity: vec_ecs::EntityHandle) {
-                self. #handles_name .entity_deleted();
+            fn delete_entity(&mut self, handle: vec_ecs::EntityHandle) {
+                self. #handles_name .entity_deleted(handle);
                 #(
-                    self. #field_names_other_than_handles . remove(entity);
+                    self. #field_names_other_than_handles . remove(handle);
                 )*
             }
         }
