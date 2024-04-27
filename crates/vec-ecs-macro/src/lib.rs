@@ -84,7 +84,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                 }
             }
 
-            impl<'a, 'b: 'a> vec_ecs::WorldBorrow<'a> for #struct_name <'b> {}
+            impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #struct_name <'b> {}
         }
     });
 
@@ -101,7 +101,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             #struct_defs
         )*
 
-        impl vec_ecs::World for #name {
+        impl vec_ecs::WorldTrait for #name {
             fn new_entity(&mut self) -> vec_ecs::EntityHandle {
                 self. #handles_name .next_handle()
             }
@@ -113,7 +113,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl<'a> vec_ecs::WorldBorrow<'a> for #name {}
+        impl<'a> vec_ecs::WorldBorrowTrait<'a> for #name {}
     };
     proc_macro::TokenStream::from(expanded)
 }
@@ -164,7 +164,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
 
     let world_borrow_impls = world_borrow_names.iter().map(|world_borrow_name| {
         quote! {
-            impl<'a, 'b: 'a> vec_ecs::EntityBorrow<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
+            impl<'a, 'b: 'a> vec_ecs::EntityBorrowTrait<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
                 fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
                     Self {
                         #(
@@ -177,7 +177,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     }).chain(
         std::iter::once(
             quote! {
-                impl<'a> vec_ecs::EntityBorrow<'a, #world_insert_name> for #name_borrow <'a> {
+                impl<'a> vec_ecs::EntityBorrowTrait<'a, #world_insert_name> for #name_borrow <'a> {
                     fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
                         Self {
                             #(
@@ -191,7 +191,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     );
 
     let expanded = quote! {
-        impl vec_ecs::Entity for #name {
+        impl vec_ecs::EntityTrait for #name {
             type WorldInsert = #world_insert_name;
             fn insert_into_world(self, id: vec_ecs::EntityHandle, world: &mut Self::WorldInsert) {
                 #(

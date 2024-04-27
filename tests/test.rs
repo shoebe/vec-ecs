@@ -1,29 +1,20 @@
-use vec_ecs::{CompIter, CompVec, EntityHandle, EntityHandleCounter};
+use vec_ecs::{CompIter, CompVec, EntityHandle, EntityHandleCounter, WorldTrait};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Position(f32, f32);
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Velocity(f32, f32);
 
-#[derive(Default)]
+#[derive(vec_ecs::World, Default)]
 pub struct World {
+    #[world(handles)]
     handles: EntityHandleCounter,
     pub pos: CompVec<Position>,
     pub vel: CompVec<Velocity>,
-    pub yomama: CompVec<()>,
+    #[world(split_off = WorldNoNothing)]
+    pub nothing: CompVec<()>,
     pub excluded: CompVec<()>,
-}
-
-impl World {
-    pub fn new_entity(&mut self) -> EntityHandle {
-        self.handles.next_handle()
-    }
-    pub fn delete_entity(&mut self, entity: EntityHandle) {
-        self.handles.entity_deleted();
-        self.pos.remove(entity);
-        self.vel.remove(entity);
-    }
 }
 
 #[test]
@@ -33,7 +24,7 @@ fn test() {
         let e = world.new_entity();
         world.pos.insert(e, Position(0.0, 0.0));
         world.vel.insert(e, Velocity(10.0, 0.0));
-        world.yomama.insert(e, ());
+        world.nothing.insert(e, ());
     }
 
     {
@@ -46,14 +37,14 @@ fn test() {
         let e = world.new_entity();
         world.pos.insert(e, Position(3.0, 0.0));
         world.vel.insert(e, Velocity(10.0, 0.0));
-        world.yomama.insert(e, ());
+        world.nothing.insert(e, ());
     }
 
     {
         let e = world.new_entity();
         world.pos.insert(e, Position(3.0, 0.0));
         world.vel.insert(e, Velocity(10.0, 0.0));
-        world.yomama.insert(e, ());
+        world.nothing.insert(e, ());
         world.excluded.insert(e, ());
     }
 
@@ -61,17 +52,29 @@ fn test() {
         let e = world.new_entity();
         world.pos.insert(e, Position(3.0, 0.0));
         world.vel.insert(e, Velocity(10.0, 0.0));
-        world.yomama.insert(e, ());
+        world.nothing.insert(e, ());
     }
 
-    for (id, pos, vel, yomama) in CompIter::from((
+    for (id, pos, vel, nothing) in CompIter::from((
         world.pos.iter_mut(),
-        world.vel.iter_mut(),
-        world.yomama.iter().optional(),
+        world.vel.iter(),
+        world.nothing.iter_mut().optional(),
     ))
     .without(&world.excluded)
     {
-        dbg!((id, pos, vel, yomama));
+        dbg!((id, pos, vel, nothing));
+    }
+
+    let (nothing, world_no_nothing) = world.split_nothing();
+
+    for (id, nothing) in nothing.iter_mut() {
+        dbg!(id, nothing);
+        for (id2, pos, vel, excluded) in CompIter::from((
+            world_no_nothing.pos.iter(),
+            world_no_nothing.vel.iter_mut(),
+            world_no_nothing.excluded.iter().optional(),
+        )) {
+            dbg!((id2, pos, vel, excluded));
+        }
     }
 }
-

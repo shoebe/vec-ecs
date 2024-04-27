@@ -1,4 +1,4 @@
-use vec_ecs::{CompIter, CompVec, EntityHandleCounter, World, WorldBorrow};
+use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldBorrowTrait, WorldTrait};
 #[derive(Debug)]
 pub struct Position(f32, f32);
 
@@ -23,20 +23,20 @@ fn test_derive() {
     #[derive(vec_ecs::Entity, Debug)]
     #[entity(insert = World)]
     #[entity(borrow = WorldNoPos)]
-    pub struct Entity {
+    pub struct Player {
         vel: Velocity,
         flags: Flag,
     }
 
     let mut world = World::default();
 
-    let e = Entity {
+    let e = Player {
         vel: Velocity(10.0, 10.0),
         flags: Flag(true),
     };
     world.insert(e);
 
-    let e = Entity {
+    let e = Player {
         vel: Velocity(10.0, 0.0),
         flags: Flag(false),
     };
@@ -44,7 +44,7 @@ fn test_derive() {
 
     let (pos, mut world_no_pos) = world.split_pos();
 
-    let e_borr: EntityBorrow = world_no_pos.borrow_entity(handle);
+    let e_borr: PlayerBorrow = world_no_pos.borrow_entity(handle);
     dbg!(&e_borr);
 
     for (id, pos) in pos.iter_mut() {
@@ -56,6 +56,6 @@ fn test_derive() {
         dbg!((id, vel, flag));
     }
 
-    let e_borr: EntityBorrow = world.borrow_entity(handle);
+    let e_borr: PlayerBorrow = world.borrow_entity(handle);
     dbg!(&e_borr);
 }
