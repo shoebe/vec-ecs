@@ -14,7 +14,7 @@ fn test_derive() {
     pub struct World {
         #[world(handles)]
         handles: EntityHandleCounter,
-        #[world(without = WorldNoPos)]
+        #[world(split_off = WorldNoPos)]
         pub pos: CompVec<Position>,
         pub vel: CompVec<Velocity>,
         pub flags: CompVec<Flag>,
@@ -42,7 +42,7 @@ fn test_derive() {
     };
     let handle = world.insert(e);
 
-    let (pos, mut world_no_pos) = WorldNoPos::split_world(&mut world);
+    let (pos, mut world_no_pos) = world.split_pos();
 
     let e_borr: EntityBorrow = world_no_pos.borrow_entity(handle);
     dbg!(&e_borr);

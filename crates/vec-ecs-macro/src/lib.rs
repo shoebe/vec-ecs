@@ -23,8 +23,8 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                     if meta.path.is_ident("handles") {
                         handles_field = Some(field);
                         Ok(())
-                    } else if meta.path.is_ident("without") {
-                        // this parses the `without`
+                    } else if meta.path.is_ident("split_off") {
+                        // this parses the `split_off`
                         let value = meta.value()?; // this parses the `=`
                         let s: Ident = value.parse()?; // this parses `"World"`
                         fields_borrow_without.push((field, s));
@@ -61,21 +61,23 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         let field_name = field.ident.as_ref().unwrap();
         let field_type = &field.ty;
 
+        let func_name = format_ident!("split_{field_name}");
+
         quote! {
             #[derive(Debug)]
             pub struct #struct_name <'a> {
                 #(
-                    #field_names: &'a mut #field_types,
+                    pub #field_names: &'a mut #field_types,
                 )*
             }
 
-            impl<'a> #struct_name <'a>{
-                pub fn split_world(world: &'a mut #name) -> (&'a mut #field_type, Self) {
+            impl #name {
+                pub fn #func_name <'a>(&'a mut self) -> (&'a mut #field_type, #struct_name <'a>) {
                     (
-                        &mut world. #field_name,
-                        Self {
+                        &mut self. #field_name,
+                        #struct_name {
                             #(
-                                #field_names: &mut world. #field_names,
+                                #field_names: &mut self. #field_names,
                             )*
                         }
                     )
