@@ -91,4 +91,8 @@ impl<T> CompVec<T> {
     pub fn owners(&self) -> &FixedBitSet {
         &self.owners
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.comps.is_empty()
+    }
 }

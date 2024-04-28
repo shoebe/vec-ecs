@@ -89,11 +89,12 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
 
     let handles_name = handles_field.ident.as_ref().unwrap();
 
-    let field_names_other_than_handles = st
+    let field_names_other_than_handles: Vec<_> = st
         .fields
         .iter()
         .filter(|field| field.ident != handles_field.ident)
-        .map(|field| field.ident.as_ref().unwrap());
+        .map(|field| field.ident.as_ref().unwrap())
+        .collect();
 
     let expanded = quote! {
         #(
@@ -109,6 +110,9 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                 #(
                     self. #field_names_other_than_handles . remove(handle);
                 )*
+            }
+            fn is_empty(&self) -> bool {
+                #(self. #field_names_other_than_handles . is_empty())&&*
             }
         }
 

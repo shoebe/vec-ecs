@@ -8,6 +8,7 @@ pub trait WorldTrait: Sized {
         entity.insert_into_world(handle, self);
         handle
     }
+    fn is_empty(&self) -> bool;
 }
 
 pub trait WorldBorrowTrait<'a>: Sized {

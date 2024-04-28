@@ -21,12 +21,14 @@ fn test() {
     }
 
     let mut world = World::default();
+    assert!(world.is_empty());
     {
         let e = world.new_entity();
         world.pos.insert(e, Position(0.0, 0.0));
         world.vel.insert(e, Velocity(10.0, 0.0));
         world.nothing.insert(e, ());
     }
+    assert!(!world.is_empty());
 
     {
         let e = world.new_entity();
