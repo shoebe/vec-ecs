@@ -1,7 +1,7 @@
 use heck::ToSnekCase;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, DeriveInput, Ident};
+use syn::{parse_macro_input, DeriveInput, Ident};
 
 #[proc_macro_derive(World, attributes(world))]
 pub fn world_derive(input: TokenStream) -> TokenStream {

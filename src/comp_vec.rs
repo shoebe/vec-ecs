@@ -39,6 +39,36 @@ impl<T> CompVec<T> {
         None
     }
 
+    pub fn get2_mut(
+        &mut self,
+        id1: EntityHandle,
+        id2: EntityHandle,
+    ) -> (Option<&mut T>, Option<&mut T>) {
+        match (
+            self.owners.contains(id1.index()),
+            self.owners.contains(id2.index()),
+        ) {
+            (true, true) => {
+                let comp_ind1 = self.owners.count_ones(0..id1.index());
+                let comp_ind2 = self.owners.count_ones(0..id2.index());
+                let max = comp_ind1.max(comp_ind2);
+                let (slice_min, slice_max) = self.comps.split_at_mut(max);
+                let (comp1, comp2) = if comp_ind1 < comp_ind2 {
+                    (&mut slice_min[comp_ind1], &mut slice_max[0])
+                } else {
+                    (&mut slice_max[0], &mut slice_min[comp_ind2])
+                };
+                (
+                    (comp1.0 == id1).then_some(&mut comp1.1),
+                    (comp2.0 == id2).then_some(&mut comp2.1),
+                )
+            }
+            (true, false) => (self.get_mut(id1), None),
+            (false, true) => (None, self.get_mut(id2)),
+            (false, false) => (None, None),
+        }
+    }
+
     pub fn insert(&mut self, id: EntityHandle, comp: T) -> Option<T> {
         let already_had = self.owners.contains(id.index());
 
@@ -94,5 +124,46 @@ impl<T> CompVec<T> {
 
     pub fn is_empty(&self) -> bool {
         self.comps.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{CompVec, EntityHandleCounter};
+
+    #[test]
+    fn test_get2_mut() {
+        let mut v = CompVec::<String>::default();
+        let mut handles = EntityHandleCounter::default();
+        let id1 = handles.next_handle();
+        v.insert(id1, "hello".to_string());
+        let id2 = handles.next_handle();
+        v.insert(id2, "hello2".to_string());
+        let id3 = handles.next_handle();
+        v.insert(id3, "hello3".to_string());
+
+        {
+            let (s1, s2) = v.get2_mut(id1, id2);
+            assert_eq!(s1, Some(&mut "hello".to_string()));
+            assert_eq!(s2, Some(&mut "hello2".to_string()));
+        }
+
+        {
+            let (s1, s3) = v.get2_mut(id1, id3);
+            assert_eq!(s1, Some(&mut "hello".to_string()));
+            assert_eq!(s3, Some(&mut "hello3".to_string()));
+        }
+
+        {
+            let (s3, s1) = v.get2_mut(id3, id1);
+            assert_eq!(s1, Some(&mut "hello".to_string()));
+            assert_eq!(s3, Some(&mut "hello3".to_string()));
+        }
+
+        {
+            let (s3, s2) = v.get2_mut(id3, id2);
+            assert_eq!(s2, Some(&mut "hello2".to_string()));
+            assert_eq!(s3, Some(&mut "hello3".to_string()));
+        }
     }
 }
