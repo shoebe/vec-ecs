@@ -1,6 +1,7 @@
+use heck::ToSnekCase;
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use syn::{parse_macro_input, DeriveInput, Ident};
+use quote::{format_ident, quote, quote_spanned};
+use syn::{parse_macro_input, spanned::Spanned, DeriveInput, Ident};
 
 #[proc_macro_derive(World, attributes(world))]
 pub fn world_derive(input: TokenStream) -> TokenStream {
@@ -12,69 +13,115 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         syn::Data::Struct(st) => st,
         syn::Data::Enum(_) | syn::Data::Union(_) => todo!(),
     };
+
+    let mut borrow_names = Vec::new();
+
+    for attr in input.attrs.iter() {
+        if attr.path().is_ident("world") {
+            let e = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("borrow") {
+                    // this parses the `borrow`
+                    let value = meta.value()?; // this parses the `=`
+                    let s: Ident = value.parse()?; // this parses borrow_name
+                    borrow_names.push(s);
+                    Ok(())
+                } else {
+                    Err(meta.error("unsupported attribute"))
+                }
+            });
+            if let Err(e) = e {
+                return e.to_compile_error().into();
+            }
+        }
+    }
+
     let mut fields_borrow_without = Vec::new();
     let mut handles_field = None;
 
     for field in st.fields.iter() {
         for attr in field.attrs.iter() {
             if attr.path().is_ident("world") {
-                attr.parse_nested_meta(|meta| {
+                let e = attr.parse_nested_meta(|meta| {
                     if meta.path.is_ident("handles") {
                         handles_field = Some(field);
                         Ok(())
-                    } else if meta.path.is_ident("split_off") {
+                    } else if meta.path.is_ident("not_in") {
                         // this parses the `split_off`
                         let value = meta.value()?; // this parses the `=`
-                        let s: Ident = value.parse()?; // this parses `"World"`
-                        fields_borrow_without.push((field, s));
+                        let s: Ident = value.parse()?; // this parses `borrow_name`
+                        fields_borrow_without.push((s, field));
                         Ok(())
                     } else {
                         Err(meta.error("unsupported attribute"))
                     }
-                })
-                .unwrap();
+                });
+                if let Err(e) = e {
+                    return e.to_compile_error().into();
+                }
             }
         }
     }
-    let handles_field = handles_field.unwrap();
+    let handles_field = handles_field.expect(
+        "need a #[world(handles)] attribute label on a struct field of type EntityHandleCounter",
+    );
 
-    let struct_defs = fields_borrow_without.iter().map(|(field, struct_name)| {
+    let mut struct_defs = Vec::new();
+
+    for borrow_name in borrow_names.iter() {
         //let field_name_caps = field.ident.as_ref().unwrap().to_string().to_pascal_case();
         //let struct_name = format_ident!("{name}No{field_name_caps}");
 
-        let field_types = st
-            .fields
+        let fields_to_ignore: Vec<_> = fields_borrow_without
             .iter()
-            .filter(|field2| field2.ident != field.ident)
-            .filter(|field2| field2.ident != handles_field.ident)
-            .map(|field| &field.ty);
+            .filter_map(|(b_name, field)| {
+                if b_name == borrow_name {
+                    Some(field)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-        let field_names: Vec<_> = st
+        if fields_to_ignore.is_empty() {
+            return quote_spanned! {
+                borrow_name.span() => compile_error!("borrow has no fields that are ignored");
+            }
+            .into();
+        }
+
+        let fields: Vec<_> = st
             .fields
             .iter()
-            .filter(|field2| field2.ident != field.ident)
             .filter(|field2| field2.ident != handles_field.ident)
+            .filter(|field2| !fields_to_ignore.iter().any(|f| f.ident == field2.ident))
+            .collect();
+
+        let field_types = fields.iter().map(|field| &field.ty);
+
+        let field_names: Vec<_> = fields
+            .iter()
             .map(|field| field.ident.as_ref().unwrap())
             .collect();
 
-        let field_name = field.ident.as_ref().unwrap();
-        let field_type = &field.ty;
+        let ignored_field_names = fields_to_ignore.iter().map(|f| f.ident.as_ref().unwrap());
+        let ignored_field_types = fields_to_ignore.iter().map(|f| &f.ty);
 
-        let func_name = format_ident!("split_{field_name}");
+        let borrow_name_snake = borrow_name.to_string().to_snek_case();
+        let func_name = format_ident!("split_{borrow_name_snake}");
 
-        quote! {
+        let q = quote! {
             #[derive(Debug)]
-            pub struct #struct_name <'a> {
+            pub struct #borrow_name <'a> {
                 #(
                     pub #field_names: &'a mut #field_types,
                 )*
             }
 
             impl #name {
-                pub fn #func_name <'a>(&'a mut self) -> (&'a mut #field_type, #struct_name <'a>) {
+                pub fn #func_name <'a>(&'a mut self) -> (( #( &'a mut #ignored_field_types),* ), #borrow_name <'a>) {
                     (
-                        &mut self. #field_name,
-                        #struct_name {
+                        ( #(&mut self. #ignored_field_names),* ),
+                        #borrow_name {
                             #(
                                 #field_names: &mut self. #field_names,
                             )*
@@ -83,9 +130,10 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                 }
             }
 
-            impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #struct_name <'b> {}
-        }
-    });
+            impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #borrow_name <'b> {}
+        };
+        struct_defs.push(q);
+    }
 
     let handles_name = handles_field.ident.as_ref().unwrap();
 

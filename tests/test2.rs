@@ -12,10 +12,11 @@ fn test_derive() {
     pub struct Flag(bool);
 
     #[derive(vec_ecs::World, Default)]
+    #[world(borrow = WorldNoPos)]
     pub struct World {
         #[world(handles)]
         handles: EntityHandleCounter,
-        #[world(split_off = WorldNoPos)]
+        #[world(not_in = WorldNoPos)]
         pub pos: CompVec<Position>,
         pub vel: CompVec<Velocity>,
         pub flags: CompVec<Flag>,
@@ -43,7 +44,7 @@ fn test_derive() {
     };
     let handle = world.insert(e);
 
-    let (pos, mut world_no_pos) = world.split_pos();
+    let (pos, mut world_no_pos) = world.split_world_no_pos();
 
     let e_borr: PlayerBorrow = world_no_pos.borrow_entity(handle);
     dbg!(&e_borr);

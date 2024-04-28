@@ -10,12 +10,13 @@ fn test() {
     pub struct Velocity(f32, f32);
 
     #[derive(vec_ecs::World, Default)]
+    #[world(borrow = WorldNoNothing)]
     pub struct World {
         #[world(handles)]
         handles: EntityHandleCounter,
         pub pos: CompVec<Position>,
         pub vel: CompVec<Velocity>,
-        #[world(split_off = WorldNoNothing)]
+        #[world(not_in = WorldNoNothing)]
         pub nothing: CompVec<()>,
         pub excluded: CompVec<()>,
     }
@@ -68,7 +69,7 @@ fn test() {
         dbg!((id, pos, vel, nothing));
     }
 
-    let (nothing, world_no_nothing) = world.split_nothing();
+    let (nothing, world_no_nothing) = world.split_world_no_nothing();
 
     for (id, nothing) in nothing.iter_mut() {
         dbg!(id, nothing);
