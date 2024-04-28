@@ -14,17 +14,18 @@ An ECS with vector and bitset backed components
 ## Features
 ### Ability to split the world into a component vec and the other component vecs
 ```rust
-#[derive(vec_ecs::World, Default)]
+ #[derive(vec_ecs::World, Default)]
+#[world(borrow = WorldNoPos)]
 pub struct World {
     #[world(handles)]
     handles: EntityHandleCounter,
-    #[world(split_off = WorldNoPos)]
+    #[world(not_in = WorldNoPos)]
     pub pos: CompVec<Position>,
     pub vel: CompVec<Velocity>,
     pub flags: CompVec<Flag>,
 }
 ```
-The `#[world(split_off = WorldNoPos)]` label generates the struct:
+The `#[world(borrow = WorldNoPos)]` label generates a struct leaving out the field labelled by `#[world(not_in = WorldNoPos)]`:
 ```rust
 pub struct WorldNoPos<'a> {
     pub vel: &'a mut CompVec<Velocity>,
@@ -36,20 +37,23 @@ And allows:
 let mut world = World::default();
 // Add entities
 // ...
-let (pos, mut rest) = world.split_pos();
+let (pos, mut rest) = world.split_world_no_pos();
 // pos: &'a mut CompVec<Position
 // rest: WorldNoPos<'a>
 ```
 
+Multiple fields can be split off by adding `#[world(not_in = WorldNoPos)]` labels.
+
 ### Component iteration
 ```rust
 #[derive(vec_ecs::World, Default)]
+#[world(borrow = WorldNoNothing)]
 pub struct World {
     #[world(handles)]
     handles: EntityHandleCounter,
     pub pos: CompVec<Position>,
     pub vel: CompVec<Velocity>,
-    #[world(split_off = WorldNoNothing)]
+    #[world(not_in = WorldNoNothing)]
     pub nothing: CompVec<()>,
     pub excluded: CompVec<()>,
 }
@@ -68,7 +72,7 @@ for (id, pos, vel, nothing) in CompIter::from((
     // will skip any entities with the `excluded` component
 }
 
-let (nothing, world_no_nothing) = world.split_nothing();
+let (nothing, world_no_nothing) = world.split_world_no_nothing();
 
 for (id, nothing) in nothing.iter_mut() {
     // id: EntityHandle
@@ -113,10 +117,12 @@ pub struct PlayerBorrow<'a> {
     flags: &'a mut Flag,
 }
 ```
-And the `#[entity(borrow = WorldNoPos)]` allows
+Which allows
 ```rust
 let e_borr: PlayerBorrow = world.borrow_entity(handle);
-// and
+```
+And the `#[entity(borrow = WorldNoPos)]` allows
+```rust
 let (pos, mut world_no_pos) = world.split_pos();
 // pos: &'a mut CompVec<Position
 // world_no_pos: WorldNoPos<'a>
