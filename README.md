@@ -3,6 +3,7 @@ An ECS with vector and bitset backed components
 
 ## Goals
 * Easy to use ECS for small numbers of entities
+* Avoid having to use runtime borrow checking in a lot of scenarios
 
 ## Non-goals
 * speed
@@ -14,7 +15,7 @@ An ECS with vector and bitset backed components
 ## Features
 ### Ability to split the world into a component vec and the other component vecs
 ```rust
- #[derive(vec_ecs::World, Default)]
+#[derive(vec_ecs::World, Default)]
 #[world(borrow = WorldNoPos)]
 pub struct World {
     #[world(handles)]
@@ -134,3 +135,8 @@ Note: all the fields in structs labeled with `#[derive(vec_ecs::Entity)]` must h
 ## TODO:
 Needs more testing for entity insertion/removal and iterating
 
+Avoid unwrapping as much
+
+Better macro errors
+
+Documentation
