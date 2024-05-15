@@ -6,5 +6,5 @@ pub trait EntityTrait {
 }
 
 pub trait EntityBorrowTrait<'a, WorldBorrow>: Sized {
-    fn from_world(entity_handle: EntityHandle, world: &'a mut WorldBorrow) -> Self;
+    fn borrow(entity_handle: EntityHandle, world: &'a mut WorldBorrow) -> Self;
 }

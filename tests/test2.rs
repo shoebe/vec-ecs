@@ -1,7 +1,7 @@
 #[test]
 #[allow(dead_code)]
 fn test_derive() {
-    use vec_ecs::{CompIter, CompVec, EntityBorrowTrait, EntityHandleCounter, WorldTrait};
+    use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldBorrowTrait, WorldTrait};
     #[derive(Debug)]
     pub struct Position(f32, f32);
 
@@ -46,9 +46,8 @@ fn test_derive() {
 
     let (pos, mut world_no_pos) = world.split_world_no_pos();
 
-    let mut e_borr = PlayerBorrow::from_world(handle, &mut world_no_pos);
-    dbg!(e_borr.flags());
-    dbg!(e_borr.vel_mut());
+    let e_borr: PlayerBorrow = world_no_pos.borrow_entity(handle);
+    dbg!(&e_borr);
 
     for (id, pos) in pos.iter_mut() {
         dbg!((id, pos));
@@ -59,5 +58,6 @@ fn test_derive() {
         dbg!((id, vel, flag));
     }
 
-    let _e_borr = PlayerBorrow::from_world(handle, &mut world);
+    let e_borr: PlayerBorrow = world.borrow_entity(handle);
+    dbg!(&e_borr);
 }

@@ -1,4 +1,4 @@
-use crate::{EntityHandle, EntityTrait};
+use crate::{EntityBorrowTrait, EntityHandle, EntityTrait};
 
 pub trait WorldTrait: Sized {
     fn new_entity(&mut self) -> EntityHandle;
@@ -9,4 +9,13 @@ pub trait WorldTrait: Sized {
         handle
     }
     fn is_empty(&self) -> bool;
+}
+
+pub trait WorldBorrowTrait<'a>: Sized {
+    fn borrow_entity<T: EntityBorrowTrait<'a, Self>>(
+        &'a mut self,
+        entity_handle: EntityHandle,
+    ) -> T {
+        T::borrow(entity_handle, self)
+    }
 }
