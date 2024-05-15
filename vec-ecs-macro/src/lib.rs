@@ -110,7 +110,6 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         let func_name = format_ident!("split_{borrow_name_snake}");
 
         let q = quote! {
-            #[derive(Debug)]
             pub struct #borrow_name <'a> {
                 #(
                     pub #field_names: &'a mut #field_types,
@@ -129,8 +128,6 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                     )
                 }
             }
-
-            impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #borrow_name <'b> {}
         };
         struct_defs.push(q);
     }
@@ -163,8 +160,6 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                 #(self. #field_names_other_than_handles . is_empty())&&*
             }
         }
-
-        impl<'a> vec_ecs::WorldBorrowTrait<'a> for #name {}
     };
     proc_macro::TokenStream::from(expanded)
 }
@@ -211,31 +206,56 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
         .iter()
         .map(|f| f.ident.as_ref().unwrap())
         .collect();
+
+    let field_name_access_func: Vec<_> = field_names.iter().collect();
+    let field_name_access_func_mut: Vec<_> = field_names
+        .iter()
+        .map(|ident| format_ident!("{ident}_mut"))
+        .collect();
+
     let field_types: Vec<_> = st.fields.iter().map(|f| &f.ty).collect();
 
     let world_borrow_impls = world_borrow_names.iter().map(|world_borrow_name| {
         quote! {
-            impl<'a, 'b: 'a> vec_ecs::EntityBorrowTrait<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
-                fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
+            impl<'a, 'b: 'a> vec_ecs::EntityBorrowTrait<'a, #world_borrow_name <'b>> for #name_borrow <'a, #world_borrow_name <'b>> {
+                fn from_world(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
                     Self {
-                        #(
-                            #field_names: world. #field_names .get_mut(handle).unwrap(),
-                        )*
+                        handle,
+                        world,
                     }
                 }
+            }
+            impl<'a, 'b: 'a> #name_borrow<'a, #world_borrow_name <'b>> {
+                #(
+                    fn #field_name_access_func (&'a self) -> &'a #field_types {
+                        self.world. #field_names .get(self.handle).unwrap()
+                    }
+                    fn #field_name_access_func_mut (&'a mut self) -> &'a mut #field_types {
+                        self.world. #field_names .get_mut(self.handle).unwrap()
+                    }
+                )*
             }
         }
     }).chain(
         std::iter::once(
             quote! {
-                impl<'a> vec_ecs::EntityBorrowTrait<'a, #world_insert_name> for #name_borrow <'a> {
-                    fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
+                impl<'a> vec_ecs::EntityBorrowTrait<'a, #world_insert_name> for #name_borrow <'a, #world_insert_name> {
+                    fn from_world(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
                         Self {
-                            #(
-                                #field_names: world. #field_names .get_mut(handle).unwrap(),
-                            )*
+                            handle,
+                            world,
                         }
                     }
+                }
+                impl<'a> #name_borrow<'a, #world_insert_name> {
+                    #(
+                        fn #field_name_access_func (&'a self) -> &'a #field_types {
+                            self.world. #field_names .get(self.handle).unwrap()
+                        }
+                        fn #field_name_access_func_mut (&'a mut self) -> &'a mut #field_types {
+                            self.world. #field_names .get_mut(self.handle).unwrap()
+                        }
+                    )*
                 }
             }
         )
@@ -251,17 +271,14 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        #[derive(Debug)]
-        struct #name_borrow <'a> {
-            #(
-                #field_names: &'a mut #field_types,
-            )*
+        struct #name_borrow <'a, World> {
+            handle: vec_ecs::EntityHandle,
+            world: &'a mut World,
         }
 
         #(
             #world_borrow_impls
         )*
-
     };
     proc_macro::TokenStream::from(expanded)
 }
