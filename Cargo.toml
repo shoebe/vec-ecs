@@ -1,4 +1,4 @@
-workspace = { members = ["crates/vec-ecs-macro"] }
+workspace = { members = ["vec-ecs-macro"] }
 
 [package]
 name = "vec-ecs"
@@ -10,7 +10,7 @@ edition = "2021"
 
 [dependencies]
 fixedbitset = "0.5.7"
-vec-ecs-macro = { path = "crates/vec-ecs-macro" }
+vec-ecs-macro = { path = "vec-ecs-macro" }
 proc-macro2 = "1"
 
 [lib]
