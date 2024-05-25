@@ -187,10 +187,7 @@ pub struct IntoCompIter<T> {
 impl<T> CompIter<T> {
     #[must_use]
     pub fn without<Y>(mut self, without: &CompVec<Y>) -> Self {
-        let mut inv = without.owners().to_owned();
-        inv.grow(self.owners.len());
-        inv.toggle_range(..);
-        self.owners.intersect_with(&inv);
+        self.owners.difference_with(without.owners());
         self
     }
     #[must_use]
