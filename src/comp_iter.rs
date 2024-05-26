@@ -1,5 +1,6 @@
 use crate::{CompVec, EntityHandle};
 
+/// Iterator for CompVec<T>
 pub struct Iter<'a, T> {
     next_entity_ind: usize,
     owners: &'a fixedbitset::FixedBitSet,
@@ -21,6 +22,9 @@ impl<'a, T> Iter<'a, T> {
 
         self.next_entity_ind = entity_index;
     }
+
+    /// Make the iter optional, meaning it will not affect ownership in `CompIter`
+    /// and will return Option<T> for every set of components.
     pub fn optional(self) -> Optional<Self> {
         Optional(self)
     }
@@ -41,6 +45,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
+/// Mut iterator for CompVec<T>
 pub struct IterMut<'a, T> {
     next_entity_ind: usize,
     owners: &'a fixedbitset::FixedBitSet,
@@ -70,6 +75,8 @@ impl<'a, T> IterMut<'a, T> {
         self.next_entity_ind = entity_index;
     }
 
+    /// Make the iter optional, meaning it will not affect ownership in `CompIter`
+    /// and will return Option<T> for every set of components.
     pub fn optional(self) -> Optional<Self> {
         Optional(self)
     }
@@ -92,6 +99,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     }
 }
 
+/// Trait used to simplify implementation of `CompIter`
 pub trait CompIterer {
     type Item;
 
@@ -136,10 +144,35 @@ impl<'a, T> CompIterer for IterMut<'a, T> {
     }
 }
 
+/// Makes a CompVec<T> iterator return Option<&T> or Option<&mut T> instead of T or &mut T
+/// when used as part of CompIter. Also will not affect the ownership combination in `CompIter`.
+pub struct Optional<T: NonOptionalCompIterer>(T);
+
+impl<T: NonOptionalCompIterer> CompIterer for Optional<T> {
+    type Item = Option<T::Item>;
+
+    fn combine_owners(&self, _owners: &mut fixedbitset::FixedBitSet) {}
+
+    fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
+        if self.0.owners().contains(entity_handle.index()) {
+            Some(self.0.comp_at(entity_handle))
+        } else {
+            None
+        }
+    }
+}
+
+/// `CompIter` can be not only `Iter<T>` and `IterMut<T>` but also
+/// `Optional<Iter<T>>` and `Optional<IterMut<T>>`.
+/// `Optional<...>` does not have/affect ownership of the iteration
+///
 /// This trait is needed in `CompIter` since at least 1 of the
-/// CompVecs needs to be non-optional in order to figure out
-/// the ownership and the EntityHandle of the components
-/// This was chosen to be the first CompVec in the tuple
+/// CompVecs needs to be non-`Optional` to figure out which components
+/// to iterate over as well as to provide an EntityHandle for every
+/// set of components
+///
+/// To do this, it was chosen that the first `CompIterer` in the
+/// `CompIter::from` tuple has to be a `NonOptionalCompIterer`
 pub trait NonOptionalCompIterer: CompIterer {
     fn owners(&self) -> &fixedbitset::FixedBitSet;
     fn comp_at_index(&mut self, entity_index: usize) -> (EntityHandle, Self::Item);
@@ -162,25 +195,6 @@ impl<'a, T> NonOptionalCompIterer for IterMut<'a, T> {
     fn comp_at_index(&mut self, entity_index: usize) -> (EntityHandle, Self::Item) {
         self.advance_forward_to(entity_index);
         self.next().unwrap()
-    }
-}
-
-/// Makes a CompVec<T> iterator return Option<T> instead.
-/// Does not affect the ownership combination when used in
-/// CompIter.
-pub struct Optional<T: NonOptionalCompIterer>(T);
-
-impl<T: NonOptionalCompIterer> CompIterer for Optional<T> {
-    type Item = Option<T::Item>;
-
-    fn combine_owners(&self, _owners: &mut fixedbitset::FixedBitSet) {}
-
-    fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
-        if self.0.owners().contains(entity_handle.index()) {
-            Some(self.0.comp_at(entity_handle))
-        } else {
-            None
-        }
     }
 }
 
@@ -215,14 +229,16 @@ pub struct CompIter<T> {
 }
 
 impl<T> CompIter<T> {
-    /// Exclude entities that have the specified components
+    /// In the set of components specified in `CompIter::from`,
+    /// ignore entities that have the specified component
     #[must_use]
     pub fn without<Y>(mut self, without: &CompVec<Y>) -> Self {
         self.owners.difference_with(without.owners());
         self
     }
 
-    /// Only include entities that have the specified components
+    /// In the set of components specified in `CompIter::from`,
+    /// only include entities that also have the specified component.
     #[must_use]
     pub fn with<Y>(mut self, with: &CompVec<Y>) -> Self {
         self.owners.intersect_with(with.owners());

@@ -1,9 +1,9 @@
-use crate::{EntityBorrowTrait, EntityHandle, EntityTrait};
+use crate::{EntityBorrowFromWorldTrait, EntityHandle, EntityInsertIntoWorldTrait};
 
 pub trait WorldTrait: Sized {
     fn new_entity(&mut self) -> EntityHandle;
     fn delete_entity(&mut self, entity: EntityHandle);
-    fn insert(&mut self, entity: impl EntityTrait<WorldInsert = Self>) -> EntityHandle {
+    fn insert(&mut self, entity: impl EntityInsertIntoWorldTrait<Self>) -> EntityHandle {
         let handle = self.new_entity();
         entity.insert_into_world(handle, self);
         handle
@@ -12,7 +12,7 @@ pub trait WorldTrait: Sized {
 }
 
 pub trait WorldBorrowTrait<'a>: Sized {
-    fn borrow_entity<T: EntityBorrowTrait<'a, Self>>(
+    fn borrow_entity<T: EntityBorrowFromWorldTrait<'a, Self>>(
         &'a mut self,
         entity_handle: EntityHandle,
     ) -> T {

@@ -215,7 +215,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
 
     let world_borrow_impls = world_borrow_names.iter().map(|world_borrow_name| {
         quote! {
-            impl<'a, 'b: 'a> vec_ecs::EntityBorrowTrait<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
+            impl<'a, 'b: 'a> vec_ecs::EntityBorrowFromWorldTrait<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
                 fn borrow_from_world(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
                     Self {
                         #(
@@ -228,7 +228,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     }).chain(
         std::iter::once(
             quote! {
-                impl<'a> vec_ecs::EntityBorrowTrait<'a, #world_insert_name> for #name_borrow <'a> {
+                impl<'a> vec_ecs::EntityBorrowFromWorldTrait<'a, #world_insert_name> for #name_borrow <'a> {
                     fn borrow_from_world(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
                         Self {
                             #(
@@ -242,9 +242,8 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     );
 
     let expanded = quote! {
-        impl vec_ecs::EntityTrait for #name {
-            type WorldInsert = #world_insert_name;
-            fn insert_into_world(self, id: vec_ecs::EntityHandle, world: &mut Self::WorldInsert) {
+        impl vec_ecs::EntityInsertIntoWorldTrait<#world_insert_name> for #name {
+            fn insert_into_world(self, id: vec_ecs::EntityHandle, world: &mut #world_insert_name) {
                 #(
                     world. #field_names .insert(id, self. #field_names);
                 )*
