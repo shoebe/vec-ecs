@@ -216,7 +216,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
     let world_borrow_impls = world_borrow_names.iter().map(|world_borrow_name| {
         quote! {
             impl<'a, 'b: 'a> vec_ecs::EntityBorrowTrait<'a, #world_borrow_name <'b>> for #name_borrow <'a> {
-                fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
+                fn borrow_from_world(handle: vec_ecs::EntityHandle, world: &'a mut #world_borrow_name <'b>) -> Self {
                     Self {
                         #(
                             #field_names: world. #field_names .get_mut(handle).unwrap(),
@@ -229,7 +229,7 @@ pub fn entity_derive(input: TokenStream) -> TokenStream {
         std::iter::once(
             quote! {
                 impl<'a> vec_ecs::EntityBorrowTrait<'a, #world_insert_name> for #name_borrow <'a> {
-                    fn borrow(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
+                    fn borrow_from_world(handle: vec_ecs::EntityHandle, world: &'a mut #world_insert_name) -> Self {
                         Self {
                             #(
                                 #field_names: world. #field_names .get_mut(handle).unwrap(),

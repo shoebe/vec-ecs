@@ -14,7 +14,8 @@ impl<'a, T> Iter<'a, T> {
             owners,
         }
     }
-    pub fn advance_to(&mut self, entity_index: usize) {
+    /// Will not advance if entity_index is smaller than the last entity index
+    fn advance_forward_to(&mut self, entity_index: usize) {
         let advance_by = self.owners.count_ones(self.next_entity_ind..entity_index);
         self.vec = &self.vec[advance_by..];
 
@@ -57,7 +58,9 @@ impl<'a, T> IterMut<'a, T> {
             owners,
         }
     }
-    pub fn advance_to(&mut self, entity_index: usize) {
+
+    /// Will not advance if entity_index is smaller than the last entity index
+    fn advance_forward_to(&mut self, entity_index: usize) {
         let advance_by = self.owners.count_ones(self.next_entity_ind..entity_index);
 
         // from https://users.rust-lang.org/t/how-does-vecs-iterator-return-a-mutable-reference/60235/14
@@ -105,7 +108,7 @@ impl<'a, T> CompIterer for Iter<'a, T> {
     }
 
     fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
-        self.advance_to(entity_handle.index());
+        self.advance_forward_to(entity_handle.index());
         let (handle2, comp) = self.next().unwrap();
         // TODO: asserting here is not ideal
         //       maybe have this function return a Result<Self::Item>?
@@ -123,7 +126,7 @@ impl<'a, T> CompIterer for IterMut<'a, T> {
     }
 
     fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
-        self.advance_to(entity_handle.index());
+        self.advance_forward_to(entity_handle.index());
         let (handle2, comp) = self.next().unwrap();
         // TODO: asserting here is not ideal
         //       maybe have this function return a Result<Self::Item>?
@@ -133,6 +136,10 @@ impl<'a, T> CompIterer for IterMut<'a, T> {
     }
 }
 
+/// This trait is needed in `CompIter` since at least 1 of the
+/// CompVecs needs to be non-optional in order to figure out
+/// the ownership and the EntityHandle of the components
+/// This was chosen to be the first CompVec in the tuple
 pub trait NonOptionalCompIterer: CompIterer {
     fn owners(&self) -> &fixedbitset::FixedBitSet;
     fn comp_at_index(&mut self, entity_index: usize) -> (EntityHandle, Self::Item);
@@ -144,7 +151,7 @@ impl<'a, T> NonOptionalCompIterer for Iter<'a, T> {
     }
 
     fn comp_at_index(&mut self, entity_index: usize) -> (EntityHandle, Self::Item) {
-        self.advance_to(entity_index);
+        self.advance_forward_to(entity_index);
         self.next().unwrap()
     }
 }
@@ -153,11 +160,14 @@ impl<'a, T> NonOptionalCompIterer for IterMut<'a, T> {
         self.owners
     }
     fn comp_at_index(&mut self, entity_index: usize) -> (EntityHandle, Self::Item) {
-        self.advance_to(entity_index);
+        self.advance_forward_to(entity_index);
         self.next().unwrap()
     }
 }
 
+/// Makes a CompVec<T> iterator return Option<T> instead.
+/// Does not affect the ownership combination when used in
+/// CompIter.
 pub struct Optional<T: NonOptionalCompIterer>(T);
 
 impl<T: NonOptionalCompIterer> CompIterer for Optional<T> {
@@ -174,22 +184,45 @@ impl<T: NonOptionalCompIterer> CompIterer for Optional<T> {
     }
 }
 
+/// Iterator builder for components with shared ownership.
+/// ```
+/// # use vec_ecs::{CompVec, CompIter, EntityHandleCounter};
+/// # let mut handles = EntityHandleCounter::default();
+/// # let handle1 = handles.next_handle();
+/// # let handle2 = handles.next_handle();
+/// # let handle3 = handles.next_handle();
+/// # let handle4 = handles.next_handle();
+///
+/// let mut v1 = CompVec::<u32>::default();
+/// let mut v2 = CompVec::<bool>::default();
+///
+/// v1.insert(handle1, 100);
+/// v2.insert(handle1, true);
+///
+/// v2.insert(handle2, false);
+///
+/// v1.insert(handle3, 32);
+/// v2.insert(handle3, false);
+///
+/// let v: Vec<_> = CompIter::from((v1.iter(), v2.iter())).into_iter().collect();
+/// assert_eq!(v, vec![(handle1, &100, &true), (handle3, &32, &false)]);
+///  
+/// ```
+/// The first iterator cannot be an optional one.
 pub struct CompIter<T> {
     comps: T,
     owners: fixedbitset::FixedBitSet,
 }
 
-pub struct IntoCompIter<T> {
-    comps: T,
-    ones: fixedbitset::IntoOnes,
-}
-
 impl<T> CompIter<T> {
+    /// Exclude entities that have the specified components
     #[must_use]
     pub fn without<Y>(mut self, without: &CompVec<Y>) -> Self {
         self.owners.difference_with(without.owners());
         self
     }
+
+    /// Only include entities that have the specified components
     #[must_use]
     pub fn with<Y>(mut self, with: &CompVec<Y>) -> Self {
         self.owners.intersect_with(with.owners());
@@ -197,7 +230,11 @@ impl<T> CompIter<T> {
     }
 }
 
-//impl_iterer!(T2, T3, T4, T5 ; comp2, comp3, comp4, comp5)
+/// The actualy iterator used by CompIter
+pub struct IntoCompIter<T> {
+    comps: T,
+    ones: fixedbitset::IntoOnes,
+}
 
 macro_rules! impl_iterer {
     ($($generics:ident),* ; $($names:ident),*) => {

@@ -1,10 +1,10 @@
-mod comp_iter;
+pub mod comp_iter;
 mod comp_vec;
 mod entity;
 mod entity_handle;
 mod world;
 
-pub use comp_iter::*;
+pub use comp_iter::CompIter;
 pub use comp_vec::*;
 pub use entity::*;
 pub use entity_handle::*;

@@ -16,6 +16,6 @@ pub trait WorldBorrowTrait<'a>: Sized {
         &'a mut self,
         entity_handle: EntityHandle,
     ) -> T {
-        T::borrow(entity_handle, self)
+        T::borrow_from_world(entity_handle, self)
     }
 }

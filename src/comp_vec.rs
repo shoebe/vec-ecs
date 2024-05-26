@@ -2,6 +2,17 @@ use crate::EntityHandle;
 use fixedbitset::FixedBitSet;
 
 #[derive(Debug)]
+/// A vector of components similar to `Vec<Option<(EntityHandle, T)>>`,
+/// but using a bitset instead of options to track presence of elements,
+/// Making the underlying storage just a `Vec<(EntityHandle, T)>`
+///
+/// All methods such as get, remove, etc. are technically O(n)
+/// since the bitset needs to be counted up to a point to figure out
+/// the index of the element. It's kinda like O(n/bit_size) though where
+/// bit_size is is number of bits used as the base type in the bit set
+///
+/// Using a hierarchical bitset might make accesses faster for
+/// large number of components
 pub struct CompVec<T> {
     comps: Vec<(EntityHandle, T)>,
     owners: FixedBitSet,
@@ -69,6 +80,7 @@ impl<T> CompVec<T> {
         }
     }
 
+    /// Returns the previous element if it was there
     pub fn insert(&mut self, id: EntityHandle, comp: T) -> Option<T> {
         let already_had = self.owners.contains(id.index());
 
@@ -85,6 +97,8 @@ impl<T> CompVec<T> {
             None
         }
     }
+
+    /// Returns the element if it was there
     pub fn remove(&mut self, id: EntityHandle) -> Option<T> {
         if self.owners.contains(id.index()) {
             self.owners.remove(id.index());
@@ -96,26 +110,34 @@ impl<T> CompVec<T> {
             None
         }
     }
+
+    /// Returns a slice of the underlying Vec
     pub fn components(&self) -> &[(EntityHandle, T)] {
         &self.comps
     }
 
+    /// Returns a reference to the component at the specified index in the underlying vec
     pub fn get_comp_ind(&self, id: usize) -> (EntityHandle, &T) {
         let (handle, comp) = &self.comps[id];
         (*handle, comp)
     }
 
+    /// Returns a mutable reference to the component at the specified index in the underlying vec
     pub fn get_mut_comp_ind(&mut self, id: usize) -> (EntityHandle, &mut T) {
         let (handle, comp) = &mut self.comps[id];
         (*handle, comp)
     }
 
-    pub fn iter(&self) -> crate::Iter<'_, T> {
-        crate::Iter::new(&self.comps, &self.owners)
+    /// Iterator of the underlying vec. Can be used with `CompIter` to iterate
+    /// over components with shared ownership
+    pub fn iter(&self) -> crate::comp_iter::Iter<'_, T> {
+        crate::comp_iter::Iter::new(&self.comps, &self.owners)
     }
 
-    pub fn iter_mut(&mut self) -> crate::IterMut<'_, T> {
-        crate::IterMut::new(&mut self.comps, &self.owners)
+    /// Mutable Iterator of the underlying vec. Can be used with `CompIter` to iterate
+    /// over components with shared ownership
+    pub fn iter_mut(&mut self) -> crate::comp_iter::IterMut<'_, T> {
+        crate::comp_iter::IterMut::new(&mut self.comps, &self.owners)
     }
 
     pub fn owners(&self) -> &FixedBitSet {
