@@ -2,15 +2,8 @@
 An ECS with vector and bitset backed components
 
 ## Goals
-* Easy to use ECS for small numbers of entities
+* Easy to use ECS for smaller numbers of entities
 * Avoid having to use runtime borrow checking in a lot of scenarios
-
-## Non-goals
-* speed
-* change detection
-* [hecs](https://github.com/Ralith/hecs) style dynamic borrow checking
-* [bevy](https://github.com/bevyengine/bevy) style automatic parallel system scheduling
-
 
 ## Features
 ### Ability to split the world into a component vec and the other component vecs
@@ -133,10 +126,4 @@ let e_borr: PlayerBorrow = world_no_pos.borrow_entity(handle);
 Note: all the fields in structs labeled with `#[derive(vec_ecs::Entity)]` must have the same names and types as the fields in the struct in the `#[entity(insert = ...)]` label and the structs in the `#[entity(borrow = ...)]` labels
 
 ## TODO:
-Needs more testing for entity insertion/removal and iterating
-
-Avoid unwrapping as much
-
-Better macro errors
-
 Documentation
