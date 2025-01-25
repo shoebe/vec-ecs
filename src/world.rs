@@ -1,7 +1,6 @@
 use crate::{EntityBorrowFromWorldTrait, EntityHandle, EntityInsertIntoWorldTrait};
 
-pub trait WorldTrait: Sized {
-    fn new_entity(&mut self) -> EntityHandle;
+pub trait WorldTrait: WorldBorrowTrait<'static> {
     fn delete_entity(&mut self, entity: EntityHandle);
     fn insert_at(&mut self, handle: EntityHandle, entity: impl EntityInsertIntoWorldTrait<Self>) {
         entity.insert_into_world(handle, self)
@@ -15,7 +14,8 @@ pub trait WorldTrait: Sized {
 }
 
 pub trait WorldBorrowTrait<'a>: Sized {
-    fn new_entity_from_borrow(&mut self) -> EntityHandle;
+    fn new_entity(&mut self) -> EntityHandle;
+    fn is_entity_already_freed(&self, handle: EntityHandle) -> bool;
     fn borrow_entity<T: EntityBorrowFromWorldTrait<'a, Self>>(
         &'a mut self,
         entity_handle: EntityHandle,

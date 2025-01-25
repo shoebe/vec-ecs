@@ -1,7 +1,7 @@
 #[test]
 #[allow(dead_code)]
 fn test() {
-    use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldTrait};
+    use vec_ecs::{CompIter, CompVec, EntityHandleCounter, WorldBorrowTrait, WorldTrait};
 
     #[derive(Debug, Default)]
     pub struct Position(f32, f32);
@@ -83,8 +83,7 @@ fn test() {
         }
 
         // make a new uninitialized entity while having part of world borrowed
-        use vec_ecs::WorldBorrowTrait;
-        let handle = world_no_nothing.new_entity_from_borrow();
+        let handle = world_no_nothing.new_entity();
         dbg!(handle);
     }
 }

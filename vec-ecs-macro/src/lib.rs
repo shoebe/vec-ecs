@@ -136,8 +136,11 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             }
 
             impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #borrow_name <'b> {
-                fn new_entity_from_borrow(&mut self) -> vec_ecs::EntityHandle {
+                fn new_entity(&mut self) -> vec_ecs::EntityHandle {
                     self. #handles_name .next_handle()
+                }
+                fn is_entity_already_freed(&self, handle: vec_ecs::EntityHandle) -> bool {
+                    self. #handles_name .is_already_freed(handle)
                 }
             }
         };
@@ -157,10 +160,10 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         )*
 
         impl vec_ecs::WorldTrait for #name {
-            fn new_entity(&mut self) -> vec_ecs::EntityHandle {
-                self. #handles_name .next_handle()
-            }
             fn delete_entity(&mut self, handle: vec_ecs::EntityHandle) {
+                if self. #handles_name .is_already_freed(handle) {
+                    return;
+                }
                 self. #handles_name .entity_deleted(handle);
                 #(
                     self. #field_names_other_than_handles . remove(handle);
@@ -172,8 +175,11 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         }
 
         impl<'a> vec_ecs::WorldBorrowTrait<'a> for #name {
-            fn new_entity_from_borrow(&mut self) -> vec_ecs::EntityHandle {
+            fn new_entity(&mut self) -> vec_ecs::EntityHandle {
                 self. #handles_name .next_handle()
+            }
+            fn is_entity_already_freed(&self, handle: vec_ecs::EntityHandle) -> bool {
+                self. #handles_name .is_already_freed(handle)
             }
         }
     };
