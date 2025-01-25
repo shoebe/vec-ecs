@@ -14,7 +14,7 @@ impl EntityHandle {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct EntityHandleCounter {
     next: usize,
     gen: u32,

@@ -67,6 +67,9 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
 
     let mut struct_defs = Vec::new();
 
+    let handles_name = handles_field.ident.as_ref().unwrap();
+    let handle_ty = &handles_field.ty;
+
     for borrow_name in borrow_names.iter() {
         //let field_name_caps = field.ident.as_ref().unwrap().to_string().to_pascal_case();
         //let struct_name = format_ident!("{name}No{field_name_caps}");
@@ -112,6 +115,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         let q = quote! {
             #[derive(Debug)]
             pub struct #borrow_name <'a> {
+                #handles_name: &'a mut #handle_ty,
                 #(
                     pub #field_names: &'a mut #field_types,
                 )*
@@ -122,6 +126,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                     (
                         ( #(&mut self. #ignored_field_names),* ),
                         #borrow_name {
+                            #handles_name: &mut self. #handles_name,
                             #(
                                 #field_names: &mut self. #field_names,
                             )*
@@ -130,12 +135,14 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
                 }
             }
 
-            impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #borrow_name <'b> {}
+            impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #borrow_name <'b> {
+                fn new_entity(&mut self) -> vec_ecs::EntityHandle {
+                    self. #handles_name .next_handle()
+                }
+            }
         };
         struct_defs.push(q);
     }
-
-    let handles_name = handles_field.ident.as_ref().unwrap();
 
     let field_names_other_than_handles: Vec<_> = st
         .fields
@@ -164,7 +171,11 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl<'a> vec_ecs::WorldBorrowTrait<'a> for #name {}
+        impl<'a> vec_ecs::WorldBorrowTrait<'a> for #name {
+            fn new_entity(&mut self) -> vec_ecs::EntityHandle {
+                self. #handles_name .next_handle()
+            }
+        }
     };
     proc_macro::TokenStream::from(expanded)
 }

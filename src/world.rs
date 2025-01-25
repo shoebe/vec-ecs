@@ -12,6 +12,7 @@ pub trait WorldTrait: Sized {
 }
 
 pub trait WorldBorrowTrait<'a>: Sized {
+    fn new_entity(&mut self) -> EntityHandle;
     fn borrow_entity<T: EntityBorrowFromWorldTrait<'a, Self>>(
         &'a mut self,
         entity_handle: EntityHandle,

@@ -69,10 +69,11 @@ fn test() {
         dbg!((id, pos, vel, nothing));
     }
 
-    let (nothing, world_no_nothing) = world.split_world_no_nothing();
+    let (nothing, mut world_no_nothing) = world.split_world_no_nothing();
 
     for (id, nothing) in nothing.iter_mut() {
         dbg!(id, nothing);
+
         for (id2, pos, vel, excluded) in CompIter::from((
             world_no_nothing.pos.iter(),
             world_no_nothing.vel.iter_mut(),
@@ -80,5 +81,10 @@ fn test() {
         )) {
             dbg!((id2, pos, vel, excluded));
         }
+
+        // make a new uninitialized entity while having part of world borrowed
+        use vec_ecs::WorldBorrowTrait;
+        let handle = world_no_nothing.new_entity();
+        dbg!(handle);
     }
 }
