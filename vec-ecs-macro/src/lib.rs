@@ -136,7 +136,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
             }
 
             impl<'a, 'b: 'a> vec_ecs::WorldBorrowTrait<'a> for #borrow_name <'b> {
-                fn new_entity(&mut self) -> vec_ecs::EntityHandle {
+                fn new_entity_from_borrow(&mut self) -> vec_ecs::EntityHandle {
                     self. #handles_name .next_handle()
                 }
             }
@@ -172,7 +172,7 @@ pub fn world_derive(input: TokenStream) -> TokenStream {
         }
 
         impl<'a> vec_ecs::WorldBorrowTrait<'a> for #name {
-            fn new_entity(&mut self) -> vec_ecs::EntityHandle {
+            fn new_entity_from_borrow(&mut self) -> vec_ecs::EntityHandle {
                 self. #handles_name .next_handle()
             }
         }

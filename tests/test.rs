@@ -84,7 +84,7 @@ fn test() {
 
         // make a new uninitialized entity while having part of world borrowed
         use vec_ecs::WorldBorrowTrait;
-        let handle = world_no_nothing.new_entity();
+        let handle = world_no_nothing.new_entity_from_borrow();
         dbg!(handle);
     }
 }
