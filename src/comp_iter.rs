@@ -178,7 +178,7 @@ pub trait NonOptionalCompIterer: CompIterer {
     fn comp_at_index(&mut self, entity_index: usize) -> (EntityHandle, Self::Item);
 }
 
-impl<'a, T> NonOptionalCompIterer for Iter<'a, T> {
+impl<T> NonOptionalCompIterer for Iter<'_, T> {
     fn owners(&self) -> &fixedbitset::FixedBitSet {
         self.owners
     }
@@ -188,7 +188,7 @@ impl<'a, T> NonOptionalCompIterer for Iter<'a, T> {
         self.next().unwrap()
     }
 }
-impl<'a, T> NonOptionalCompIterer for IterMut<'a, T> {
+impl<T> NonOptionalCompIterer for IterMut<'_, T> {
     fn owners(&self) -> &fixedbitset::FixedBitSet {
         self.owners
     }
