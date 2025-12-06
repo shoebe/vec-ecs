@@ -149,6 +149,19 @@ impl<T> CompVec<T> {
     }
 }
 
+impl<T: Clone> Clone for CompVec<T> {
+    fn clone(&self) -> Self {
+        Self {
+            comps: self.comps.clone(),
+            owners: self.owners.clone(),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.comps.clone_from(&source.comps);
+        self.owners.clone_from(source.owners());
+    }
+}
 #[cfg(test)]
 mod test {
     use crate::{CompVec, EntityHandleCounter};
