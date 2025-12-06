@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use crate::{CompVec, EntityHandle};
 
 /// Iterator for CompVec<T>
@@ -99,13 +101,28 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     }
 }
 
+#[derive(Debug)]
+pub enum CompIterError {
+    EntityHandleMismatch,
+}
+
+impl std::fmt::Display for CompIterError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("component at wanted index had a different handle")
+    }
+}
+
+impl Error for CompIterError {}
+
+pub type Result<T> = std::result::Result<T, CompIterError>;
+
 /// Trait used to simplify implementation of `CompIter`
 pub trait CompIterer {
     type Item;
 
     fn combine_owners(&self, owners: &mut fixedbitset::FixedBitSet);
 
-    fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item;
+    fn comp_at(&mut self, entity_handle: EntityHandle) -> Result<Self::Item>;
 }
 
 impl<'a, T> CompIterer for Iter<'a, T> {
@@ -115,14 +132,13 @@ impl<'a, T> CompIterer for Iter<'a, T> {
         owners.intersect_with(self.owners);
     }
 
-    fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
+    fn comp_at(&mut self, entity_handle: EntityHandle) -> Result<Self::Item> {
         self.advance_forward_to(entity_handle.index());
         let (handle2, comp) = self.next().unwrap();
-        // TODO: asserting here is not ideal
-        //       maybe have this function return a Result<Self::Item>?
-        //       The iterer can iter again if it's err
-        assert_eq!(entity_handle, handle2);
-        comp
+        if entity_handle != handle2 {
+            return Err(CompIterError::EntityHandleMismatch);
+        }
+        Ok(comp)
     }
 }
 
@@ -133,14 +149,13 @@ impl<'a, T> CompIterer for IterMut<'a, T> {
         owners.intersect_with(self.owners);
     }
 
-    fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
+    fn comp_at(&mut self, entity_handle: EntityHandle) -> Result<Self::Item> {
         self.advance_forward_to(entity_handle.index());
         let (handle2, comp) = self.next().unwrap();
-        // TODO: asserting here is not ideal
-        //       maybe have this function return a Result<Self::Item>?
-        //       The iterer can iter again if it's err
-        assert_eq!(entity_handle, handle2);
-        comp
+        if entity_handle != handle2 {
+            return Err(CompIterError::EntityHandleMismatch);
+        }
+        Ok(comp)
     }
 }
 
@@ -153,11 +168,15 @@ impl<T: NonOptionalCompIterer> CompIterer for Optional<T> {
 
     fn combine_owners(&self, _owners: &mut fixedbitset::FixedBitSet) {}
 
-    fn comp_at(&mut self, entity_handle: EntityHandle) -> Self::Item {
+    fn comp_at(&mut self, entity_handle: EntityHandle) -> Result<Self::Item> {
         if self.0.owners().contains(entity_handle.index()) {
-            Some(self.0.comp_at(entity_handle))
+            if let Ok(c) = self.0.comp_at(entity_handle) {
+                Ok(Some(c))
+            } else {
+                Err(CompIterError::EntityHandleMismatch)
+            }
         } else {
-            None
+            Ok(None)
         }
     }
 }
@@ -289,28 +308,38 @@ macro_rules! impl_iterer {
             }
         }
 
+        impl<T1: NonOptionalCompIterer, $($generics: CompIterer, )* > IntoCompIter<(T1, $($generics),*)>
+        {
+            fn get_at_index(&mut self, index: usize) -> Result<(EntityHandle, T1::Item, $($generics::Item, )*)> {
+                let (
+                    comp1,
+                    $(
+                        $names,
+                    )*
+                ) = &mut self.comps;
+                let (id1, comp1) = comp1.comp_at_index(index);
+                Ok((
+                    id1,
+                    comp1,
+                    $(
+                        $names.comp_at(id1)?,
+                    )*
+                ))
+            }
+        }
+
         impl<T1: NonOptionalCompIterer, $($generics: CompIterer, )* > Iterator
             for IntoCompIter<(T1, $($generics),*)>
         {
             type Item = (EntityHandle, T1::Item, $($generics::Item, )*);
 
             fn next(&mut self) -> Option<Self::Item> {
-                self.ones.next().map(|index| {
-                    let (
-                        comp1,
-                        $(
-                            $names,
-                        )*
-                    ) = &mut self.comps;
-                    let (id1, comp1) = comp1.comp_at_index(index);
-                    (
-                        id1,
-                        comp1,
-                        $(
-                            $names.comp_at(id1),
-                        )*
-                    )
-                })
+                while let Some(index) = self.ones.next() {
+                    if let Ok(item) = self.get_at_index(index) {
+                        return Some(item);
+                    }
+                }
+                None
             }
         }
     };
