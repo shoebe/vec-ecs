@@ -28,6 +28,10 @@ impl<T> Default for CompVec<T> {
 }
 
 impl<T> CompVec<T> {
+    pub fn contains(&self, id: EntityHandle) -> bool {
+        self.owners.contains(id.index())
+    }
+
     pub fn get(&self, id: EntityHandle) -> Option<&T> {
         if self.owners.contains(id.index()) {
             let comp_ind = self.owners.count_ones(0..id.index()); // exclude self
